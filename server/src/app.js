@@ -24,13 +24,12 @@ app.get("/api/ping", (req, res) => {
 //routes import
 import userRouter from "./routes/user.routes.js"
 import questionRouter from "./routes/question.routes.js";
-
+import studyPlanRouter from "./routes/studyplan.routes.js";
 
 //routes decalaration
 app.use("/api/users", userRouter)
 app.use("/api/ques", questionRouter)
-
-
+app.use("/api/studyplan", studyPlanRouter)
 
 
 export { app }

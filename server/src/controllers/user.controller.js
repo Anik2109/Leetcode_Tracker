@@ -2,11 +2,12 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import jwt from 'jsonwebtoken'
-import mongoose, { isValidObjectId } from "mongoose";
+import { isValidObjectId } from "mongoose";
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js';
+import utc from 'dayjs/plugin/utc.js';
 dayjs.extend(isSameOrAfter);
+dayjs.extend(utc);
 import axios from "axios";
 import { Question } from "../models/question.models.js";
 
@@ -247,7 +248,7 @@ const getStats = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User not found");
     }
 
-    let today = dayjs().startOf("day");
+    let today = dayjs().utc().startOf("day");
     let weekStart = today.subtract(6, "day"); 
     let easy=0;
     let medium=0;
@@ -269,7 +270,7 @@ const getStats = asyncHandler(async (req, res) => {
         else if (diff === "medium") medium++;
         else if (diff === "hard") hard++;
 
-        const created = dayjs(q.createdAt);
+        const created = dayjs.utc(q.createdAt);
         const dateStr = created.format("YYYY-MM-DD");
 
         if (created.isSameOrAfter(weekStart)) {
@@ -281,8 +282,8 @@ const getStats = asyncHandler(async (req, res) => {
     }
 
 
-    const tod = dayjs().format("YYYY-MM-DD");
-    const yesterday = dayjs().subtract(1, "day").format("YYYY-MM-DD");
+    const tod = dayjs.utc().format("YYYY-MM-DD");
+    const yesterday = dayjs.utc().subtract(1, "day").format("YYYY-MM-DD");
 
     const todaySolved = perDay[tod] || 0;
     const yesterdaySolved = perDay[yesterday] || 0;
@@ -306,7 +307,7 @@ const getStats = asyncHandler(async (req, res) => {
         streak: user.streak,
         weekSolved: solvedThisWeek,
         dailySolved: perDay,
-        lastSynced: user.lastSynced ? dayjs(user.lastSynced).format("YYYY-MM-DD HH:mm:ss") : null,
+        lastSynced: user.lastSynced ? user.lastSynced.toISOString() : null
     };
 
 
