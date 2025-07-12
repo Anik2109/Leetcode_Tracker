@@ -22,10 +22,10 @@ const userSchema = new Schema(
         refreshToken: {
             type: String
         },
-        solvedProblems: {
-            type: [String],
-            default: [],
-        },
+        solvedProblems: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Question',
+        }],
         lastSynced: {
             type: Date,
             default: null,
@@ -34,7 +34,11 @@ const userSchema = new Schema(
             type: String,
             enum: ["user", "admin"],
             default: "user",
-        }
+        },
+        streak: {
+            type: Number,
+            default: 0,
+        },
 
     },
     {

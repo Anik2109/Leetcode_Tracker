@@ -1,34 +1,38 @@
-import mongppse,{ Schema } from 'mongoose';
+import mongoose from "mongoose";
+import { Schema } from "mongoose";
 
 const QuestionSchema = new Schema(
-    {
-        title: {
-            type: String,
-            required: true
-        },
-        slug: {
-            type: String,
-            required: true,
-            unique: true
-        },
-        difficulty: {
-            type: String,
-            enum: ['Easy', 'Medium', 'Hard'],
-            required: true
-        },
-        topics: {
-            type: [String],
-            default: []
-        },
-        companyTags: {
-            type: [String],
-            default: []
-        }
-
+  {
+    Qid: {
+        type: String,
+        required: true,
+        index: true,
+        unique: true,
     },
-    {
-        timestamps: true,
+    title: {
+        type: String,
+        trim: true,
+    },
+    slug: {
+        type: String,
+        unique: true,
+    },
+    difficulty: {
+        type: String,
+        enum: ['Easy', 'Medium', 'Hard'],
+    },
+    topics: {
+        type: [String],
+        default: [],
+    },
+    companyTags: {
+        type: [String],
+        default: [],
     }
-)
+  },
+  {
+    timestamps: true,
+  }
+);
 
 export const Question = mongoose.model('Question', QuestionSchema);
