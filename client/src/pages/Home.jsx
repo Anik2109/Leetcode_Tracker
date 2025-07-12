@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import authService from "../services/Auth";
+import Dashboard from "../components/Dashboard/Dashboard";
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -14,13 +15,27 @@ export default function Home() {
       });
   }, []);
 
-  if (!user) return <p>🔒 Not logged in</p>;
+  if (!user){
+  return (
+    <div className="min-h-screen flex flex-col justify-center items-center bg-[#0f0f1c] text-white space-y-4">
+      {/* Bouncing dots */}
+      <div className="flex space-x-3">
+        <div className="h-5 w-5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+        <div className="h-5 w-5 bg-green-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+        <div className="h-5 w-5 bg-purple-500 rounded-full animate-bounce"></div>
+      </div>
+
+      {/* Funny DSA comment */}
+      <p className="text-lg text-white">
+        "Generating testcases... Verifying against hidden inputs... 🙃"
+      </p>
+    </div>
+  );
+}
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h2>Dashboard</h2>
-      <p>Welcome, {user.fullName}</p>
-      <p>Username: {user.username}</p>
-    </div>
+    <>
+      <Dashboard />
+    </>
   );
 }

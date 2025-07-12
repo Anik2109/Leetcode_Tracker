@@ -281,15 +281,19 @@ const getStats = asyncHandler(async (req, res) => {
     }
 
 
-    let currentStreak = 0;
-    
-    for (let i = 0; i < 7; i++) {
-        const date = today.subtract(i, "day").format("YYYY-MM-DD");
-        if (perDay[date] > 0) currentStreak++;
-        else break;
-    }
+    const tod = dayjs().format("YYYY-MM-DD");
+    const yesterday = dayjs().subtract(1, "day").format("YYYY-MM-DD");
 
-    user.streak = currentStreak;
+    const todaySolved = perDay[tod] || 0;
+    const yesterdaySolved = perDay[yesterday] || 0;
+    const now = dayjs();
+
+    if (todaySolved > 0) {
+      user.streak += 1;
+    } else if (yesterdaySolved > 0 && now.hour() < 23 && now.minute() < 59) {
+    } else {
+      user.streak = 0;
+}
     await user.save({ validateBeforeSave: false });
 
 
