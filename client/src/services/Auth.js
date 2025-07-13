@@ -8,7 +8,12 @@ class AuthService{
             const accessToken = res.data.statusCode.accessToken;
             const user = res.data.statusCode.user;
 
+            console.log("role: ", user.role);
+            
+
+
             localStorage.setItem("accessToken", accessToken);
+            localStorage.setItem("role", user.role);
             API.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
             return user;
 
@@ -32,11 +37,20 @@ class AuthService{
         try {
             const res = await API.post("/users/logout");
             localStorage.removeItem("accessToken");
+            localStorage.removeItem("role");
             delete API.defaults.headers.common["Authorization"];
         } catch (error) {
             console.log("Logout failed:", error);
             throw error;
         }
+    }
+
+    isAdmin() {
+        return localStorage.getItem("role") === "admin";
+    }
+
+    getRole() {
+        return localStorage.getItem("role");
     }
 }
 

@@ -7,12 +7,15 @@ import { useNavigate } from "react-router-dom";
 
 export default function Header() {
   const authStatus = useSelector((state) => state.auth.status);
+  const role = useSelector(state => state.role.role);
+
+  
   const { pathname } = useLocation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const isActive = (path) =>
-    pathname === path ? "text-yellow-400" : "text-slate-300";
+    pathname === path ? "text-white" : "text-slate-300";
 
   const navItemClass =
     "hover:text-amber-400 px-3 py-2 rounded-md text-sm font-medium transition duration-200";
@@ -28,7 +31,7 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-[#1e1e2f] shadow-sm border-b border-[#2d2d3f]">
+    <header className="bg-[#0f0f1c] shadow-sm border-b border-[#2d2d3f]">
       <div className=" px-1 sm:px-2 lg:px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -41,7 +44,7 @@ export default function Header() {
                 height="30px"
                 alt="Logo"
               />
-              <p className="m-2 text-xl text-slate-100 font-bold">
+              <p className="m-2 text-xl text-white font-bold">
                 LeetCode Tracker
               </p>
             </Link>
@@ -61,6 +64,11 @@ export default function Header() {
             <Link to="/profile" className={`${isActive("/profile")} ${navItemClass}`}>
               Profile
             </Link>
+            {authService.isAdmin() && (
+              <Link to="/admin" className={`${isActive("/admin")} ${navItemClass}`}>
+                Admin
+              </Link>
+            )}
             {authStatus && (
               <button
                 onClick={handleLogout}

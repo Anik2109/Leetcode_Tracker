@@ -35,9 +35,9 @@ const userSchema = new Schema(
             enum: ["user", "admin"],
             default: "user",
         },
-        streak: {
-            type: Number,
-            default: 0,
+        lastMissedDate: {
+            type: Date,
+            default: null,
         },
 
     },

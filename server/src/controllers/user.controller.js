@@ -281,20 +281,31 @@ const getStats = asyncHandler(async (req, res) => {
         }
     }
 
+    const tod = dayjs.utc().startOf("day");
+    const yesterday = tod.subtract(1, "day");
 
-    const tod = dayjs.utc().format("YYYY-MM-DD");
-    const yesterday = dayjs.utc().subtract(1, "day").format("YYYY-MM-DD");
+    // Update `lastMissedDate` if yesterday was missed
+    const yesterdayStr = yesterday.format("YYYY-MM-DD");
+    if ((perDay[yesterdayStr] || 0) === 0) {
+      user.lastMissedDate = yesterday.toDate(); // Store as Date
+      await user.save();
+    }
 
-    const todaySolved = perDay[tod] || 0;
-    const yesterdaySolved = perDay[yesterday] || 0;
-    const now = dayjs();
+    // Compute current streak from yesterday to lastMissedDate
+    let streak = 0;
+    let day = yesterday.clone();
+    const lastMissed = user.lastMissedDate ? dayjs.utc(user.lastMissedDate).startOf("day") : null;
 
-    if (todaySolved > 0) {
-      user.streak += 1;
-    } else if (yesterdaySolved > 0 && now.hour() < 23 && now.minute() < 59) {
-    } else {
-      user.streak = 0;
-}
+    while (!lastMissed || day.isAfter(lastMissed)) {
+      const dateStr = day.format("YYYY-MM-DD");
+      if ((perDay[dateStr] || 0) > 0) {
+        streak++;
+        day = day.subtract(1, "day");
+      } else {
+        break;
+      }
+    }
+
     await user.save({ validateBeforeSave: false });
 
 
@@ -304,7 +315,7 @@ const getStats = asyncHandler(async (req, res) => {
         easySolved: easy,
         mediumSolved: medium,
         hardSolved: hard,
-        streak: user.streak,
+        streak: streak,
         weekSolved: solvedThisWeek,
         dailySolved: perDay,
         lastSynced: user.lastSynced ? user.lastSynced.toISOString() : null

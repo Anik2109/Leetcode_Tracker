@@ -134,9 +134,9 @@ export default function Dashboard() {
   const lastSyncedRelative = dayjs(stats.lastSynced).fromNow();
 
   return (
-    <div className="min-h-screen bg-[#0f0f1c] text-white p-6">
+    <div className="bg-[#0f0f1c] text-white p-6">
       <div className="flex justify-between items-center mb-10">
-        <h1 className="text-4xl font-bold tracking-tight">Analytics Dashboard</h1>
+        <h1 className="text-4xl text-white font-bold tracking-tight">Analytics Dashboard</h1>
 
         <div className="flex items-center gap-4 text-sm text-gray-400">
           <p>Last refreshed: {lastSyncedRelative}</p>
@@ -231,11 +231,11 @@ function DifficultyCard({ label, solved, total, color, percent }) {
     <div className="bg-[#1a1b2e] border border-[#2b2b3e] rounded-xl p-4 shadow-sm text-sm">
       <div className="flex justify-between items-center mb-1">
         <p className={`text-base font-semibold ${textColor[color]}`}>{label}</p>
-        <span className={`text-xs px-2 py-0.5 rounded-full ${badgeBg[color]} ${textColor[color]}`}>{percent}%</span>
+        <span className={`text-sm px-2 py-0.5 rounded-full ${badgeBg[color]} ${textColor[color]}`}>{percent}%</span>
       </div>
-      <p className="text-xs text-[#a0aec0] mb-1">Solved</p>
+      <p className="text-sm text-[#a0aec0] mb-1">Solved</p>
       <ProgressBar value={solved} total={total} color={colorMap[color]} />
-      <p className="text-xs text-[#718096] mt-1">{solved} / {total}</p>
+      <p className="text-base text-[#718096] mt-1">{solved} / {total}</p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import authService from "../services/Auth";
 import Dashboard from "../components/Dashboard/Dashboard";
+import StudyPlans from "../components/StudyPlans/StudyPlans";
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -36,6 +37,8 @@ export default function Home() {
   return (
     <>
       <Dashboard />
+      <StudyPlans />
+
     </>
   );
 }

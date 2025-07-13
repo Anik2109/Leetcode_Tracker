@@ -71,25 +71,55 @@ const getStudyPlan_admin = asyncHandler(async (req, res) => {
 });
 
 const getStudyPlan_public = asyncHandler(async (req, res) => {
-    const userId  = req.user._id;
-    console.log(`Fetching study plan for user: ${userId}`);
-    
-    if (!isValidObjectId(userId)) {
-        throw new ApiError(400, "Invalid user ID");
-    }
-    const studyPlan = await StudyPlan.findOne({ user: userId }).populate('topics.questions');
-    if (!studyPlan) {
-        throw new ApiError(404, "Study plan not found for this user");
-    }
-    res
-    .status(200)
-    .json(
-        new ApiResponse(
-            200,
-            "Study plan retrieved successfully",
-            studyPlan
-        )
-    );
+  const userId = req.user._id;
+
+  if (!isValidObjectId(userId)) {
+    throw new ApiError(400, "Invalid user ID");
+  }
+
+  const studyPlan = await StudyPlan.findOne({ user: userId });
+
+  if (!studyPlan) {
+    throw new ApiError(404, "Study plan not found for this user");
+  }
+
+  // Optionally get user's solved problems if needed
+  const user = await User.findById(userId);
+  const solvedSet = new Set(user.solvedProblems.map(id => id.toString()));
+  // console.log("User's solved problems:", solvedSet);
+  
+
+  // Transform topics
+  const transformedTopics = await Promise.all(
+    studyPlan.topics.map(async (topic) => {
+      const questionIds = topic.questions; // array of strings
+
+      const questions = await Question.find({ Qid: { $in: questionIds } });
+
+      const enrichedQuestions = questions.map((q) => ({
+        title: q.title,
+        slug: q.slug,
+        Qid: q.Qid ?? q._id,
+        difficulty: q.difficulty,
+        solved: solvedSet.has(q._id.toString())
+      }));
+
+      return {
+        title: topic.title,
+        questions: enrichedQuestions
+      };
+    })
+  );
+
+  const transformedPlan = {
+    _id: studyPlan._id,
+    user: studyPlan.user,
+    topics: transformedTopics
+  };
+
+  return res.status(200).json(
+    new ApiResponse(200, "Study plan retrieved successfully", transformedPlan)
+  );
 });
 
 const patchStudyPlan_admin = asyncHandler(async (req, res) => {
