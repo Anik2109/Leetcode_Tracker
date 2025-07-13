@@ -85,7 +85,7 @@ const getStudyPlan_public = asyncHandler(async (req, res) => {
 
   // Optionally get user's solved problems if needed
   const user = await User.findById(userId);
-  const solvedSet = new Set(user.solvedProblems.map(id => id.toString()));
+  const solvedSet = new Set(user.solvedProblems.map(id => id.question.toString()));
   // console.log("User's solved problems:", solvedSet);
   
 
