@@ -11,10 +11,12 @@ function App() {
   const dispatch = useDispatch();
   const location = useLocation();
   const authStatus = useSelector((state) => state.auth.authStatus);
+  const role = useSelector((state) => state.role.role);
   const hideHeader = location.pathname === "/";
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
+    
 
     if (token) {
       API.defaults.headers.common["Authorization"] = `Bearer ${token}`;

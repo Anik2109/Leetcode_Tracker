@@ -22,10 +22,20 @@ const userSchema = new Schema(
         refreshToken: {
             type: String
         },
-        solvedProblems: [{
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Question',
-        }],
+        solvedProblems: [
+            {
+                question: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Question',
+                required: true
+                },
+                solvedOn: {
+                type: Date,
+                default: () => new Date(),
+                required: true
+                }
+            }
+        ],
         lastSynced: {
             type: Date,
             default: null,

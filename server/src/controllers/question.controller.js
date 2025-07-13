@@ -165,16 +165,14 @@ const getQuestionById = asyncHandler(async (req, res) => {
 
 
 const addQues = asyncHandler(async (req, res) => {
-    console.log("Body received:", req.body);
+
     const {Qid} =req.body;
-    console.log("Qid received:", Qid);
     if (!Qid) {
         throw new ApiError(400, "Question ID is required");
     }
     
     const existingQuestion = await Question.findOne({ Qid });
     
-    console.log("Existing Question:", existingQuestion);
     
     if (existingQuestion) {
         throw new ApiError(400, "Question already exists");

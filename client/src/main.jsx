@@ -5,8 +5,10 @@ import App from "./App";
 import Login from './pages/Login';
 import { store } from "./app/store";
 import { Provider } from "react-redux";
-import AuthLayout from './components/AuthLayout';
+import {Protected} from './components/AuthLayout';
+import {Secured} from './components/AuthLayout';
 import Home from './pages/Home';
+import Admin from './pages/Admin';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 const router = createBrowserRouter([
@@ -21,9 +23,17 @@ const router = createBrowserRouter([
       {
         path: "/home",
         element: (
-          <AuthLayout authentication>
+          <Protected authentication>
             <Home />
-          </AuthLayout>
+          </Protected>
+        ),
+      },
+      {
+        path: "/admin",
+        element: (
+          <Secured authentication>
+            <Admin />
+          </Secured>
         ),
       },
     ],

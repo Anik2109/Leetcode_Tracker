@@ -130,6 +130,35 @@ export default function Dashboard() {
     },
   ];
 
+  const colorPalette = [
+    "bg-slate-800 text-white",      // 0 - Inactive
+    "bg-emerald-300 text-gray-900",       // 1
+    "bg-emerald-400 text-gray-900",       // 2
+    "bg-emerald-500 text-gray-900",       // 3
+    "bg-emerald-600 text-white",       // 4
+    "bg-emerald-700 text-white",       // 5
+    "bg-emerald-800 text-white",       // 6–7
+    "bg-emerald-900 text-white",       // 8–9
+    "bg-green-800 text-white",         // 10–14
+    "bg-green-900 text-white",         // 15–19
+    "bg-lime-950 text-white",          // 20–24
+    "bg-violet-500 text-white",        // 25+ (legendary)
+  ];
+  const getColorClass = (count) => {
+    if (count === 0) return colorPalette[0];  // Inactive
+    if (count === 1) return colorPalette[1];
+    if (count === 2) return colorPalette[2];
+    if (count === 3) return colorPalette[3];
+    if (count === 4) return colorPalette[4];
+    if (count === 5) return colorPalette[5];
+    if (count <= 7) return colorPalette[6];
+    if (count <= 9) return colorPalette[7];
+    if (count <= 14) return colorPalette[8];
+    if (count <= 19) return colorPalette[9];
+    if (count <= 24) return colorPalette[10];
+    return colorPalette[11]; // 25+
+  };
+
   const activity = Object.values(stats.dailySolved);
   const lastSyncedRelative = dayjs(stats.lastSynced).fromNow();
 
@@ -175,13 +204,8 @@ export default function Dashboard() {
               {activity.map((count, idx) => (
                 <div
                   key={idx}
-                  className={`w-10 h-10 flex items-center justify-center rounded-md text-[12px] font-bold shadow-sm
-                    ${count === 0 ? "bg-[#1e293b] text-gray-500"
-                      : count >= 10 ? "bg-purple-500 text-white"
-                      : idx === 0 ? "bg-yellow-400 text-black"
-                      : idx === 1 ? "bg-yellow-300 text-black"
-                      : idx === 2 || idx === 4 || idx === 5 ? "bg-green-400 text-black"
-                      : "bg-gray-500 text-black"}`}
+                  className={`w-10 h-10 flex items-center justify-center rounded-md text-[12px] font-bold shadow transition-all duration-300 ease-in-out scale-100 hover:scale-105 ${getColorClass(count)} animate-fade-in`}
+                  style={{ animationDelay: `${idx * 30}ms` }}
                 >
                   {count}
                 </div>

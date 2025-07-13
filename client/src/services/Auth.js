@@ -8,7 +8,6 @@ class AuthService{
             const accessToken = res.data.statusCode.accessToken;
             const user = res.data.statusCode.user;
 
-            console.log("role: ", user.role);
             
 
 
@@ -28,7 +27,6 @@ class AuthService{
             const res = await API.get("/users/me");
             return res.data.statusCode.user;
         } catch (error) {
-            console.log("Get current user failed:", error);
             throw error;
         }
     }
@@ -40,7 +38,7 @@ class AuthService{
             localStorage.removeItem("role");
             delete API.defaults.headers.common["Authorization"];
         } catch (error) {
-            console.log("Logout failed:", error);
+
             throw error;
         }
     }

@@ -10,16 +10,22 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true); 
+    setErrorMsg("");  
     e.preventDefault();
     try {
       const user = await authService.login(username, password);
       if (user) dispatch(authLogin(user));
       navigate("/home");
     } catch (err) {
-      const msg = err.response?.data?.message || "Login failed";
+      const msg = err.response?.data?.message || "Login failed... HAWWWWWWWW";
       setErrorMsg(msg);
+    } finally{
+      setLoading(false); 
     }
   };
 
@@ -50,6 +56,7 @@ export default function LoginPage() {
               id="username"
               name="username"
               value={username}
+              autoComplete="username"
               onChange={(e) => setUsername(e.target.value)}
               required
               className="w-full px-4 py-2 border border-[#3c3c56] bg-[#12121c] text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200"
@@ -65,6 +72,7 @@ export default function LoginPage() {
               type="password"
               id="password"
               name="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -77,12 +85,15 @@ export default function LoginPage() {
             <p className="text-sm text-red-500 text-center">{errorMsg}</p>
           )}
 
-          <button
+         <button
             type="submit"
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-md shadow-md hover:shadow-orange-700/50 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 transition duration-200 font-semibold tracking-wide"
+            disabled={loading}
+            className={`w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 transition duration-200 font-semibold tracking-wide ${
+              loading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
-            Login
-          </button>
+            {loading ? "Logging in..." : "Login"}
+        </button>
         </form>
       </div>
     </div>

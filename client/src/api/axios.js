@@ -4,7 +4,7 @@ import axios from "axios";
 
 const baseURL = `${import.meta.env.VITE_API_HOST}${import.meta.env.VITE_API_BASE_URL}`;
 
-console.log("🔧 Axios baseURL set to:", baseURL);
+
 
 const API = axios.create({
   baseURL: baseURL,

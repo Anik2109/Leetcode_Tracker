@@ -24,7 +24,7 @@ export default function Header() {
     try {
       await authService.logout();
       dispatch(authLogout());
-      navigate("/login");
+      navigate("/");
     } catch (error) {
       console.error("Logout failed:", error);
     }

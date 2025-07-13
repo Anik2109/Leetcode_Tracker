@@ -156,24 +156,29 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 });
 
 const syncSolvedProblems = asyncHandler(async (req, res) => {
-    const userId = req.user._id;
-    if (!isValidObjectId(userId)) {
-        throw new ApiError(400, "User ID is not valid");
-    }
-    const user = await User.findById(userId)
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
-    const csrfToken = req.headers['x-csrftoken'];
-    const cookie = req.headers['cookie'];
-    if (!csrfToken || !cookie) {
-        throw new ApiError(400, "CSRF token and cookie are required");
-    }
-    const limit = 50;
+  const userId = req.user._id;
+  if (!isValidObjectId(userId)) {
+    throw new ApiError(400, "User ID is not valid");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const csrfToken = req.headers["x-csrftoken"];
+  const cookie = req.headers["cookie"];
+  if (!csrfToken || !cookie) {
+    throw new ApiError(400, "CSRF token and cookie are required");
+  }
+
+  const limit = 50;
   let skip = 0;
   let total = Infinity;
-  const solvedIds = new Set(user.solvedProblems.map(id => id.toString()));
+
+  const solvedIds = new Set(user.solvedProblems.map(item => item.question.toString()));
   const seenQuestions = new Set();
+  let newSolvedCount = 0;
 
   while (skip < total) {
     const response = await axios.post(
@@ -193,17 +198,17 @@ const syncSolvedProblems = asyncHandler(async (req, res) => {
         variables: {
           filters: { status: "AC" },
           limit,
-          skip
-        }
+          skip,
+        },
       },
       {
         headers: {
           "Content-Type": "application/json",
           "x-csrftoken": csrfToken,
-          "Cookie": cookie,
-          "Referer": "https://leetcode.com",
-          "User-Agent": "Mozilla/5.0"
-        }
+          Cookie: cookie,
+          Referer: "https://leetcode.com",
+          "User-Agent": "Mozilla/5.0",
+        },
       }
     );
 
@@ -211,126 +216,124 @@ const syncSolvedProblems = asyncHandler(async (req, res) => {
     total = data.total;
 
     for (const q of data.questions) {
-        if (seenQuestions.has(q.questionFrontendId)) continue; 
-        seenQuestions.add(q.questionFrontendId);
+      if (seenQuestions.has(q.questionFrontendId)) continue;
+      seenQuestions.add(q.questionFrontendId);
 
-        const dbQuestion = await Question.findOne({ Qid: q.questionFrontendId });
-        if (dbQuestion) {
-            solvedIds.add(dbQuestion._id.toString());
+      const dbQuestion = await Question.findOne({ Qid: q.questionFrontendId });
+      if (dbQuestion) {
+        const questionId = dbQuestion._id.toString();
+        if (!solvedIds.has(questionId)) {
+          user.solvedProblems.push({
+            question: dbQuestion._id,
+            solvedOn: new Date(), // or use actual timestamp if you have it
+          });
+          solvedIds.add(questionId);
+          newSolvedCount++;
         }
+      }
     }
-
 
     skip += limit;
   }
 
-  user.solvedProblems = [...solvedIds]; 
   user.lastSynced = new Date();
   await user.save();
 
   return res.status(200).json(
-    new ApiResponse(200, 
-        "User's solved problems synced", 
-        {
-        count: user.solvedProblems.length,
-        }
-    )
-)
+    new ApiResponse(200, "User's solved problems synced", {
+      count: user.solvedProblems.length,
+      newlyAdded: newSolvedCount,
+      lastSynced: user.lastSynced,
+    })
+  );
 });
 
 const getStats = asyncHandler(async (req, res) => {
-    const userId = req.user._id;
-    if (!isValidObjectId(userId)) {
-        throw new ApiError(400, "User ID is not valid");
-    }
-    const user = await User.findById(userId).populate("solvedProblems");
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
+  const userId = req.user._id;
+  if (!isValidObjectId(userId)) {
+    throw new ApiError(400, "User ID is not valid");
+  }
 
-    let today = dayjs().utc().startOf("day");
-    let weekStart = today.subtract(6, "day"); 
-    let easy=0;
-    let medium=0;
-    let hard=0;
-    let solvedThisWeek=0;
-    let perDay={};
+  const user = await User.findById(userId).populate("solvedProblems.question");
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
 
-    
+  let today = dayjs().utc().startOf("day");
+  let weekStart = today.subtract(6, "day");
 
-    for (let i = 0; i < 7; i++) {
-        let d = weekStart.add(i, "day").format("YYYY-MM-DD");
-        perDay[d] = 0;
-    }
+  let easy = 0;
+  let medium = 0;
+  let hard = 0;
+  let solvedThisWeek = 0;
+  let perDay = {};
 
+  // Initialize perDay with all 7 days
+  for (let i = 0; i < 7; i++) {
+    const d = weekStart.add(i, "day").format("YYYY-MM-DD");
+    perDay[d] = 0;
+  }
 
-    for (const q of user.solvedProblems) {
-        const diff = q.difficulty?.toLowerCase();
-        if (diff === "easy") easy++;
-        else if (diff === "medium") medium++;
-        else if (diff === "hard") hard++;
+  for (const entry of user.solvedProblems) {
+    const q = entry.question;
+    const solvedDate = dayjs.utc(entry.solvedOn);
+    const dateStr = solvedDate.format("YYYY-MM-DD");
 
-        const created = dayjs.utc(q.createdAt);
-        const dateStr = created.format("YYYY-MM-DD");
-
-        if (created.isSameOrAfter(weekStart)) {
-            solvedThisWeek++;
-            if (perDay[dateStr] !== undefined) {
-                perDay[dateStr]++;
-            }
-        }
+    if (q?.difficulty) {
+      const diff = q.difficulty.toLowerCase();
+      if (diff === "easy") easy++;
+      else if (diff === "medium") medium++;
+      else if (diff === "hard") hard++;
     }
 
-    const tod = dayjs.utc().startOf("day");
-    const yesterday = tod.subtract(1, "day");
-
-    // Update `lastMissedDate` if yesterday was missed
-    const yesterdayStr = yesterday.format("YYYY-MM-DD");
-    if ((perDay[yesterdayStr] || 0) === 0) {
-      user.lastMissedDate = yesterday.toDate(); // Store as Date
-      await user.save();
-    }
-
-    // Compute current streak from yesterday to lastMissedDate
-    let streak = 0;
-    let day = yesterday.clone();
-    const lastMissed = user.lastMissedDate ? dayjs.utc(user.lastMissedDate).startOf("day") : null;
-
-    while (!lastMissed || day.isAfter(lastMissed)) {
-      const dateStr = day.format("YYYY-MM-DD");
-      if ((perDay[dateStr] || 0) > 0) {
-        streak++;
-        day = day.subtract(1, "day");
-      } else {
-        break;
+    if (solvedDate.isSameOrAfter(weekStart)) {
+      solvedThisWeek++;
+      if (perDay[dateStr] !== undefined) {
+        perDay[dateStr]++;
       }
     }
+  }
 
-    await user.save({ validateBeforeSave: false });
+  // Handle streak & lastMissedDate
+  const tod = dayjs.utc().startOf("day");
+  const yesterday = tod.subtract(1, "day");
+  const yesterdayStr = yesterday.format("YYYY-MM-DD");
 
+  if ((perDay[yesterdayStr] || 0) === 0) {
+    user.lastMissedDate = yesterday.toDate();
+    await user.save();
+  }
 
+  let streak = 0;
+  let day = yesterday.clone();
+  const lastMissed = user.lastMissedDate ? dayjs.utc(user.lastMissedDate).startOf("day") : null;
 
-    const stats = {
-        totalSolved: user.solvedProblems.length,
-        easySolved: easy,
-        mediumSolved: medium,
-        hardSolved: hard,
-        streak: streak,
-        weekSolved: solvedThisWeek,
-        dailySolved: perDay,
-        lastSynced: user.lastSynced ? user.lastSynced.toISOString() : null
-    };
+  while (!lastMissed || day.isAfter(lastMissed)) {
+    const dateStr = day.format("YYYY-MM-DD");
+    if ((perDay[dateStr] || 0) > 0) {
+      streak++;
+      day = day.subtract(1, "day");
+    } else {
+      break;
+    }
+  }
 
+  await user.save({ validateBeforeSave: false });
 
-    return res
-    .status(200)
-    .json(
-        new ApiResponse(
-            200, 
-            "User stats fetched successfully", 
-            {stats}
-        )
-    );
+  const stats = {
+    totalSolved: user.solvedProblems.length,
+    easySolved: easy,
+    mediumSolved: medium,
+    hardSolved: hard,
+    streak,
+    weekSolved: solvedThisWeek,
+    dailySolved: perDay,
+    lastSynced: user.lastSynced ? user.lastSynced.toISOString() : null
+  };
+
+  return res.status(200).json(
+    new ApiResponse(200, "User stats fetched successfully", { stats })
+  );
 });
 
 const syncDaily = asyncHandler(async (req, res) => {
@@ -350,8 +353,14 @@ const syncDaily = asyncHandler(async (req, res) => {
   }
 
   const limit = 20;
-  const solvedIds = new Set(user.solvedProblems.map(id => id.toString()));
-  const seenSlugs = new Set(); // since recentAcSubmissionList uses slugs
+
+  // Convert existing to Set of question ID strings for quick lookup
+  const solvedMap = new Map(); // Map<questionId, Date>
+  for (const entry of user.solvedProblems) {
+    solvedMap.set(entry.question.toString(), entry.solvedOn);
+  }
+
+  const seenSlugs = new Set(); // to avoid duplicate slugs in this batch
 
   const response = await axios.post(
     "https://leetcode.com/graphql",
@@ -388,16 +397,24 @@ const syncDaily = asyncHandler(async (req, res) => {
     seenSlugs.add(sub.titleSlug);
 
     const dbQuestion = await Question.findOne({ slug: sub.titleSlug });
-    if (dbQuestion) {
-      const idStr = dbQuestion._id.toString();
-      if (!solvedIds.has(idStr)) {
-        solvedIds.add(idStr);
-        newSolvedCount++;
-      }
+    if (!dbQuestion) continue;
+
+    const qIdStr = dbQuestion._id.toString();
+    const solvedDate = new Date(sub.timestamp * 1000); // Convert UNIX to JS Date
+
+    if (!solvedMap.has(qIdStr)) {
+      // new entry
+      solvedMap.set(qIdStr, solvedDate);
+      newSolvedCount++;
     }
   }
 
-  user.solvedProblems = [...solvedIds];
+  // Rebuild solvedProblems array
+  user.solvedProblems = Array.from(solvedMap.entries()).map(([questionId, solvedOn]) => ({
+    question: questionId,
+    solvedOn
+  }));
+
   user.lastSynced = new Date();
   await user.save();
 
