@@ -1,9 +1,13 @@
 import axios from "axios";
 
-const BASE_URL = process.env.BACKEND_URL || "http://localhost:4000/api";
+
+
+const baseURL = `${import.meta.env.VITE_API_HOST}${import.meta.env.VITE_API_BASE_URL}`;
+
+console.log("🔧 Axios baseURL set to:", baseURL);
 
 const API = axios.create({
-  baseURL: `${BASE_URL}/api`,
+  baseURL: baseURL,
   withCredentials: true
 });
 
