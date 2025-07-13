@@ -4,12 +4,25 @@ import cookieParser from "cookie-parser";
 const app = express();
 
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://leetcode-tracker-woad.vercel.app"
+];
 
-
-app.use(cors({
-    origin: "http://localhost:5173", 
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like Postman) or from allowedOrigins
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("❌ Not allowed by CORS"));
+      }
+    },
     credentials: true
-}))
+  })
+);
+
 
 app.use(express.json({limit:"16kb"}))
 app.use(express.urlencoded({extended:true,limit:"16kb"}))
