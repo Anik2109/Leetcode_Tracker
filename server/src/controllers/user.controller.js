@@ -299,6 +299,8 @@ const getStats = asyncHandler(async (req, res) => {
 const todayStr = dayjs.utc().format("YYYY-MM-DD");
 const yesterdayStr = dayjs.utc().subtract(1, "day").format("YYYY-MM-DD");
 
+
+
 const didSolveYesterday = (perDay[yesterdayStr] || 0) > 0;
 const didSolveToday = (perDay[todayStr] || 0) > 0;
 
@@ -325,6 +327,9 @@ while (true) {
     break;
   }
 }
+
+streak = Math.max(streak, 0); // Ensure streak is not negative
+streak = streak + (didSolveToday ? 1 : 0); // Add today if solved
 // console.log(`📈 Calculated streak: ${streak} days (as of ${current.add(1, "day").format("YYYY-MM-DD")})`);
   
 
