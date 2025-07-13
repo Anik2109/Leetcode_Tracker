@@ -1,11 +1,12 @@
 import { Router } from "express";
-import {Signup,Login,Logout,getCurrentUser,getStats,syncSolvedProblems, syncDaily} from "../controllers/user.controller.js";
+import {Signup,Login,Logout,getCurrentUser,getStats,syncSolvedProblems, syncDaily,cronSyncAllUsers} from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
 router.route("/register").post(Signup)
 router.route("/login").post(Login)
+router.route("/cron_sync").post(cronSyncAllUsers);
 
 
 //Secured Routes

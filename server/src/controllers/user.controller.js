@@ -425,13 +425,15 @@ const syncDaily = asyncHandler(async (req, res) => {
   }
 
   // Rebuild solvedProblems array
-  user.solvedProblems = Array.from(solvedMap.entries()).map(([questionId, solvedOn]) => ({
-    question: questionId,
-    solvedOn
-  }));
+  if (newSolvedCount > 0) {
+    user.solvedProblems = Array.from(solvedMap.entries()).map(([questionId, solvedOn]) => ({
+      question: questionId,
+      solvedOn
+    }));
+  }
 
-  user.lastSynced = new Date();
-  await user.save();
+    user.lastSynced = new Date();
+    await user.save();
 
   return res.status(200).json(
     new ApiResponse(200, "Daily solved problems synced", {
@@ -442,5 +444,106 @@ const syncDaily = asyncHandler(async (req, res) => {
   );
 });
 
-export{Signup, Login, Logout, getCurrentUser, generateAccessAndRefreshTokens,getStats,syncSolvedProblems,syncDaily};
+const cronSyncAllUsers = asyncHandler(async (req, res) => {
+  const secret = req.headers["x-cron-secret"];
+  if (!secret || secret !== process.env.CRON_SECRET) {
+    throw new ApiError(401, "Unauthorized CRON access");
+  }
+
+  const users = await User.find({}, "_id username solvedProblems");
+  let successCount = 0;
+  const failed = [];
+
+  for (const user of users) {
+    const username = user.username;
+    if (!username) {
+      // console.warn(`❌ Skipping user with no username: ${user._id}`);
+      continue;
+    }
+
+    const limit = 20;
+    const solvedMap = new Map();
+    for (const entry of user.solvedProblems) {
+      solvedMap.set(entry.question.toString(), entry.solvedOn);
+    }
+
+    const seenSlugs = new Set();
+
+    try {
+      const response = await axios.post(
+        "https://leetcode.com/graphql",
+        {
+          query: `
+            query recentAcSubmissions($username: String!, $limit: Int!) {
+              recentAcSubmissionList(username: $username, limit: $limit) {
+                id
+                title
+                titleSlug
+                timestamp
+              }
+            }
+          `,
+          variables: { username, limit },
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Referer": `https://leetcode.com/${username}/`,
+            "User-Agent": "Mozilla/5.0",
+          },
+        }
+      );
+
+      const submissions = response.data.data.recentAcSubmissionList;
+      let newSolvedCount = 0;
+
+      for (const sub of submissions) {
+        if (seenSlugs.has(sub.titleSlug)) continue;
+        seenSlugs.add(sub.titleSlug);
+
+        const dbQuestion = await Question.findOne({ slug: sub.titleSlug });
+        if (!dbQuestion) continue;
+
+        const qIdStr = dbQuestion._id.toString();
+        const solvedDate = new Date(sub.timestamp * 1000);
+
+        if (!solvedMap.has(qIdStr)) {
+          solvedMap.set(qIdStr, solvedDate);
+          newSolvedCount++;
+        }
+      }
+
+      if (newSolvedCount > 0) {
+        user.solvedProblems = Array.from(solvedMap.entries()).map(([questionId, solvedOn]) => ({
+          question: questionId,
+          solvedOn
+        }));
+        // console.log(`✅ Synced ${username}: ${newSolvedCount} new`);
+        successCount++;
+      }
+      else {
+      // console.log(`🟡 No new submissions for ${username}`);
+
+      user.lastSynced = new Date();
+      await user.save();
+        
+         
+      }
+    } catch (err) {
+      // console.error(`❌ Failed for ${username}:`, err.message);
+      failed.push(username);
+    }
+  }
+
+  console.log(`✅ Cron finished: ${successCount}/${users.length} users synced.`);
+  return res.status(200).json(
+    new ApiResponse(200, "Cron Sync Complete", {
+      totalUsers: users.length,
+      synced: successCount,
+      failed,
+    })
+  );
+});
+
+export{Signup, Login, Logout, getCurrentUser, generateAccessAndRefreshTokens,getStats,syncSolvedProblems,syncDaily,cronSyncAllUsers};
 
