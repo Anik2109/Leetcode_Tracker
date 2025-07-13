@@ -294,29 +294,39 @@ const getStats = asyncHandler(async (req, res) => {
     }
   }
 
-  // Handle streak & lastMissedDate
-  const tod = dayjs.utc().startOf("day");
-  const yesterday = tod.subtract(1, "day");
-  const yesterdayStr = yesterday.format("YYYY-MM-DD");
 
-  if ((perDay[yesterdayStr] || 0) === 0) {
-    user.lastMissedDate = yesterday.toDate();
-    await user.save();
+// const today = dayjs().utc().startOf("day");
+const todayStr = dayjs.utc().format("YYYY-MM-DD");
+const yesterdayStr = dayjs.utc().subtract(1, "day").format("YYYY-MM-DD");
+
+const didSolveYesterday = (perDay[yesterdayStr] || 0) > 0;
+const didSolveToday = (perDay[todayStr] || 0) > 0;
+
+
+if (!didSolveYesterday && !didSolveToday) {
+  user.lastMissedDate = dayjs.utc(yesterdayStr).toDate();
+  await user.save();
+  // console.warn("🔴 Updated lastMissedDate to", yesterdayStr);
+} else {
+  // console.log("🟢 No update to lastMissedDate"); 
+}
+
+// === STREAK CALCULATION ===
+let streak = 0;
+let current = dayjs.utc().subtract(1, "day"); // Only count *complete* days
+
+while (true) {
+  const dateStr = current.format("YYYY-MM-DD");
+
+  if ((perDay[dateStr] || 0) > 0) {
+    streak++;
+    current = current.subtract(1, "day");
+  } else {
+    break;
   }
-
-  let streak = 0;
-  let day = yesterday.clone();
-  const lastMissed = user.lastMissedDate ? dayjs.utc(user.lastMissedDate).startOf("day") : null;
-
-  while (!lastMissed || day.isAfter(lastMissed)) {
-    const dateStr = day.format("YYYY-MM-DD");
-    if ((perDay[dateStr] || 0) > 0) {
-      streak++;
-      day = day.subtract(1, "day");
-    } else {
-      break;
-    }
-  }
+}
+// console.log(`📈 Calculated streak: ${streak} days (as of ${current.add(1, "day").format("YYYY-MM-DD")})`);
+  
 
   await user.save({ validateBeforeSave: false });
 
