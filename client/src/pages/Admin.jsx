@@ -3,7 +3,6 @@ import API from "../api/axios";
 import { toast } from "react-hot-toast";
 import { Toaster } from "react-hot-toast";
 import ConfirmModal from "../components/Confirmation/confirm.jsx";
-import Editor from "@monaco-editor/react";
 
 export default function Admin() {
   const [fetchedPlan, setFetchedPlan] = useState(null);
@@ -66,8 +65,9 @@ export default function Admin() {
       if (form.action === "view") {
         const { data } = await API.get(`/studyplan/${userId}`);
         toast.success("Fetched successfully!");
-        setFetchedPlan(data.topics);
-        document.getElementById("outputPanel")?.scrollIntoView({ behavior: "smooth" });
+        setFetchedPlan(data.statusCode.topics || []);
+        
+        // document.getElementById("outputPanel")?.scrollIntoView({ behavior: "smooth" });
       } else {
         await API.patch(`/studyplan/${userId}`, jsonOutput);
         toast.success("Action completed successfully!");
@@ -110,7 +110,7 @@ export default function Admin() {
       <Toaster position="top-right" />
       {/* ===== Left: Form ===== */}
       <div className="w-full lg:w-1/2 space-y-6">
-        <h1 className="text-2xl font-bold">Study Plan Editor</h1>
+        <h1 className="text-2xl font-bold">Configure Action</h1>
 
         {/* User */}
         <div>
@@ -121,8 +121,9 @@ export default function Admin() {
             onChange={handleChange}
             className="w-full bg-gray-900 border border-gray-700 text-white rounded-md px-3 py-2"
           >
-            <option value="cutiee">Cutiee</option>
+            <option value="">Select a user</option>
             <option value="babygirl">Babygirl</option>
+            <option value="cutiee">Cutiee</option>
           </select>
         </div>
 
@@ -217,23 +218,14 @@ export default function Admin() {
             <h2 className="text-xl font-semibold mb-2">
                 {form.action === "view" ? "Fetched Study Plan" : "JSON Output"}
             </h2>
-            <Editor
-                height="400px"
-                theme="vs-dark"
-                language="json"
+            <textarea
+                readOnly
+                className="w-full min-h-[400px] bg-black text-green-500 font-mono rounded-md p-4 border border-gray-800"
                 value={
-                    form.action === "view"
+                form.action === "view"
                     ? JSON.stringify(fetchedPlan, null, 2)
                     : JSON.stringify(jsonOutput, null, 2)
                 }
-                options={{
-                    readOnly: true,
-                    minimap: { enabled: false },
-                    wordWrap: "on",
-                    fontSize: 14,
-                    lineNumbers: "on",
-                    scrollBeyondLastLine: false,
-                }}
             />
             {form.action === "view" && fetchedPlan && (
               <div className="mt-6 bg-gray-800 p-4 rounded-md">
