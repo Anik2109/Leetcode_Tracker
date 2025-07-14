@@ -523,12 +523,11 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
       }
       else {
       // console.log(`🟡 No new submissions for ${username}`);
+      }
 
       user.lastSynced = new Date();
       await user.save();
         
-         
-      }
     } catch (err) {
       // console.error(`❌ Failed for ${username}:`, err.message);
       failed.push(username);
