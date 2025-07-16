@@ -1,15 +1,17 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
-import { User } from "../models/user.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { User } from "../models/user.model.js";
+import {Contest} from "../models/contest.models.js";
+import { Question } from "../models/question.models.js";
 import { isValidObjectId } from "mongoose";
+import {scrapeAllContests} from "./contest.controller.js";
+import axios from "axios";
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js';
 import utc from 'dayjs/plugin/utc.js';
 dayjs.extend(isSameOrAfter);
 dayjs.extend(utc);
-import axios from "axios";
-import { Question } from "../models/question.models.js";
 
 const generateAccessAndRefreshTokens = async(userId) => {
     try {
@@ -261,11 +263,10 @@ const getStats = asyncHandler(async (req, res) => {
 
   let today = dayjs().utc().startOf("day");
   let weekStart = today.subtract(6, "day");
-
+  let weekCount=0;
   let easy = 0;
   let medium = 0;
   let hard = 0;
-  let solvedThisWeek = 0;
   let perDay = {};
 
   // Initialize perDay with all 7 days
@@ -287,7 +288,7 @@ const getStats = asyncHandler(async (req, res) => {
     }
 
     if (solvedDate.isSameOrAfter(weekStart)) {
-      solvedThisWeek++;
+      weekCount++;
       if (perDay[dateStr] !== undefined) {
         perDay[dateStr]++;
       }
@@ -335,15 +336,23 @@ streak = streak + (didSolveToday ? 1 : 0); // Add today if solved
 
   await user.save({ validateBeforeSave: false });
 
+  const nextContest = await Contest.findOne({
+  endTime: { $gt: new Date() },  
+  active: true                   
+}).sort({ startTime: 1 });    
+
+
+
   const stats = {
     totalSolved: user.solvedProblems.length,
     easySolved: easy,
     mediumSolved: medium,
     hardSolved: hard,
     streak,
-    weekSolved: solvedThisWeek,
     dailySolved: perDay,
-    lastSynced: user.lastSynced ? user.lastSynced.toISOString() : null
+    lastSynced: user.lastSynced ? user.lastSynced.toISOString() : null,
+    nextContest: nextContest,
+    weekCount: weekCount,
   };
 
   return res.status(200).json(
@@ -444,6 +453,31 @@ const syncDaily = asyncHandler(async (req, res) => {
   );
 });
 
+const AddContestPref = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  if (!isValidObjectId(userId)) {
+    throw new ApiError(400, "User ID is not valid");
+  }
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const{pref} = req.body;
+  if (!pref || !Array.isArray(pref)) {
+    throw new ApiError(400, "Preferences must be an array");
+  }
+
+  user.contestPrefrences = pref;
+  await user.save({ validateBeforeSave: false });
+  return res.status(200).json(
+    new ApiResponse(200, "Contest preferences updated successfully", {
+      contestPreferences: user.contestPrefrences
+    })
+  );
+});
+
+
 const cronSyncAllUsers = asyncHandler(async (req, res) => {
   const secret = req.headers["x-cron-secret"];
   if (!secret || secret !== process.env.CRON_SECRET) {
@@ -456,17 +490,10 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
 
   for (const user of users) {
     const username = user.username;
-    if (!username) {
-      // console.warn(`❌ Skipping user with no username: ${user._id}`);
-      continue;
-    }
+    if (!username) continue;
 
     const limit = 20;
-    const solvedMap = new Map();
-    for (const entry of user.solvedProblems) {
-      solvedMap.set(entry.question.toString(), entry.solvedOn);
-    }
-
+    const solvedMap = new Map(user.solvedProblems.map(entry => [entry.question.toString(), entry.solvedOn]));
     const seenSlugs = new Set();
 
     try {
@@ -494,7 +521,7 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
         }
       );
 
-      const submissions = response.data.data.recentAcSubmissionList;
+      const submissions = response.data.data.recentAcSubmissionList || [];
       let newSolvedCount = 0;
 
       for (const sub of submissions) {
@@ -518,31 +545,67 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
           question: questionId,
           solvedOn
         }));
-        // console.log(`✅ Synced ${username}: ${newSolvedCount} new`);
         successCount++;
-      }
-      else {
-      // console.log(`🟡 No new submissions for ${username}`);
       }
 
       user.lastSynced = new Date();
       await user.save();
-        
+
     } catch (err) {
-      // console.error(`❌ Failed for ${username}:`, err.message);
       failed.push(username);
+      console.error(`❌ Sync failed for ${username}: ${err.message}`);
     }
   }
 
-  console.log(`✅ Cron finished: ${successCount}/${users.length} users synced.`);
+  console.log(`✅ User Sync finished: ${successCount}/${users.length} users synced.`);
+
+  // ----- Sync Contests -----
+  try {
+    const contests = await scrapeAllContests(); // Should return unified contests array
+
+    if (!Array.isArray(contests)) {
+      throw new ApiError("scrapeAllContests did not return an array");
+    }
+
+    const inserted = [];
+    const skipped = [];
+
+    for (const contest of contests) {
+      const alreadyExists = await Contest.findOne({
+        name: contest.name,
+        platform: contest.platform,
+        startTime: contest.startTime,
+      });
+
+      if (alreadyExists) {
+        skipped.push(contest);
+      } else {
+        const created = await Contest.create(contest);
+        inserted.push(created);
+      }
+    }
+
+    console.log(`✅ Contests Sync: ${inserted.length} inserted, ${skipped.length} skipped.`);
+
+  } catch (err) {
+    console.error(`❌ Contest Sync Failed: ${err.message}`);
+  }
+
   return res.status(200).json(
-    new ApiResponse(200, "Cron Sync Complete", {
-      totalUsers: users.length,
-      synced: successCount,
-      failed,
+    new ApiResponse(200, "CRON Sync Completed", {
+      users: {
+        total: users.length,
+        synced: successCount,
+        failed: failed.length,
+        failedUsers: failed,
+      },
+      contests: {
+        inserted: inserted.length,
+        skipped: skipped.length,
+      }
     })
   );
 });
 
-export{Signup, Login, Logout, getCurrentUser, generateAccessAndRefreshTokens,getStats,syncSolvedProblems,syncDaily,cronSyncAllUsers};
+export{Signup, Login, Logout, getCurrentUser, generateAccessAndRefreshTokens,getStats,syncSolvedProblems,syncDaily,cronSyncAllUsers,AddContestPref};
 

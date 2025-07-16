@@ -24,10 +24,12 @@ const QuestionSchema = new Schema(
     topics: {
         type: [String],
         default: [],
+        index: true,
     },
     companyTags: {
         type: [String],
         default: [],
+        index: true,
     }
   },
   {

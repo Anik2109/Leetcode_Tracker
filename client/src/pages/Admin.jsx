@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import API from "../api/axios";
 import { toast } from "react-hot-toast";
 import { Toaster } from "react-hot-toast";
 import ConfirmModal from "../components/Confirmation/confirm.jsx";
+import dayjs from "dayjs";
 
 export default function Admin() {
   const [fetchedPlan, setFetchedPlan] = useState(null);
@@ -23,6 +24,8 @@ export default function Admin() {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
+
+  
 
   // Parse the questions textarea into an array
   const parsedQuestions = (form.questions || "")
@@ -103,6 +106,45 @@ export default function Admin() {
       setLoading(false);
     }
   };
+
+  const [awaitedContests, setAwaitedContests] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  const fetchAwaitedContests = async () => {
+    try {
+      const { data } = await API.get("/contest/active");
+      setAwaitedContests(data.statusCode.awaitedContests || []);
+    } catch (err) {
+      toast.error("Failed to fetch awaited contests");
+    }
+  };
+
+  const toggleContest = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const archiveSelectedContests = async () => {
+    if (selectedIds.length === 0) return toast.error("No contests selected.");
+    setConfirmMessage(`Are you sure you want to archive ${selectedIds.length} contest(s)?`);
+    setConfirmAction(() => confirmArchiveSelectedContests);
+    setShowConfirm(true);
+    const confirmArchiveSelectedContests = async () => {
+      try {
+        await API.post("/contest/archive", { contestIds: selectedIds });
+        toast.success("Archived successfully!");
+        setSelectedIds([]);
+        fetchAwaitedContests(); 
+      } catch (err) {
+        toast.error("Failed to archive contests.");
+      }
+    };
+  };
+
+  useEffect(() => {
+    fetchAwaitedContests();
+  }, []);
 
 
   return (
@@ -248,6 +290,40 @@ export default function Admin() {
            onConfirm={confirmAction}
            message={confirmMessage}
          />
+         <div className="w-full lg:w-1/2 mt-10">
+      <h2 className="text-2xl font-bold mb-4">📦 Archive Completed Contests</h2>
+      <div className="bg-[#1a1b2e] p-4 rounded-lg border border-white/10 space-y-3 max-h-[400px] overflow-y-auto">
+        {awaitedContests.length === 0 ? (
+          <p className="text-gray-400">No awaited contests available.</p>
+        ) : (
+          awaitedContests.map((contest) => (
+            <label
+              key={contest._id}
+              className="flex items-center gap-3 text-sm cursor-pointer text-white"
+            >
+              <input
+                type="checkbox"
+                className="accent-blue-500"
+                checked={selectedIds.includes(contest._id)}
+                onChange={() => toggleContest(contest._id)}
+              />
+              <span>
+                <strong>{contest.platform}</strong> — {contest.name}
+              </span>
+            </label>
+          ))
+        )}
+      </div>
+
+      <button
+        onClick={archiveSelectedContests}
+        disabled={selectedIds.length === 0}
+        className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md disabled:opacity-50"
+      >
+        Archive Selected Contests
+      </button>
     </div>
+    </div>
+    
   );
 }

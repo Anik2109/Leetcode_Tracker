@@ -21,22 +21,24 @@ const Plan = ({ title, questions }) => {
     <div className="mb-6 w-full max-w-6xl mx-auto bg-[#1a1b2e] border rounded-[2.5rem] shadow-xl overflow-hidden transition-all duration-300">
       {/* Header */}
       <div
-        className="flex items-center justify-between px-6 py-5 text-white cursor-pointer"
+        className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 xs:gap-4 px-6 py-5 text-white cursor-pointer"
         onClick={() => setOpen(!open)}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {open ? (
-            <ChevronDown className="h-6 w-6 shrink-0 transition-transform duration-200 text-white rotate-180" />
+            <ChevronDown className="h-5 w-5 shrink-0 text-white rotate-180 transition-transform" />
           ) : (
-            <ChevronRight className="h-6 w-6 shrink-0 transition-transform duration-200 text-white rotate-0" />
+            <ChevronRight className="h-5 w-5 shrink-0 text-white rotate-0 transition-transform" />
           )}
-          <span className="text-2xl font-semibold text-white">{title}</span>
+          <span className="text-xl font-semibold">{title}</span>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-400">
+
+        {/* Stats & progress – stacked on mobile */}
+        <div className="flex flex-col xs:flex-row xs:items-center gap-1 xs:gap-4 w-full xs:w-auto">
+          <div className="text-sm text-gray-400 text-left xs:text-right">
             {completed} / {total} completed
           </div>
-          <div className="w-32">
+          <div className="w-full xs:w-32">
             <ProgressBar percent={percent} />
           </div>
         </div>
@@ -53,7 +55,7 @@ const Plan = ({ title, questions }) => {
               rel="noopener noreferrer"
               className={`block p-4 rounded-2xl transition duration-200 ${
                 q.solved ? 'bg-[#1a1b2e]' : 'bg-[#1a1b2e]'
-              } flex items-center justify-between shadow-md border border-white/10 hover:shadow-xl hover:bg-[#1c1d2f] focus-visible:ring-2 focus-visible:ring-cyan-400`}
+              } flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 shadow-md border border-white/10 hover:shadow-xl hover:bg-[#1c1d2f]`}
             >
               <div className="flex items-center gap-3">
                 {q.solved ? (

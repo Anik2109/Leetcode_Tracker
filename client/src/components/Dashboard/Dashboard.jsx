@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import {useNavigate} from "react-router-dom";
 import API from "../../api/axios";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -8,6 +9,9 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+
+  const [nextContest, setNextContest] = useState(null);
+  const navigate = useNavigate();
 
   const handleSyncNow = async () => {
     try {
@@ -158,6 +162,13 @@ export default function Dashboard() {
     if (count <= 24) return colorPalette[10];
     return colorPalette[11]; // 25+
   };
+  const getDuration = (start, end) => {
+    const dur = dayjs(end).diff(dayjs(start), "minute");
+    const hrs = Math.floor(dur / 60);
+    const mins = dur % 60;
+    return `${hrs ? `${hrs}h ` : ""}${mins}m`;
+  };
+
 
   const activity = Object.values(stats.dailySolved);
   const lastSyncedRelative = dayjs(stats.lastSynced).fromNow();
@@ -180,9 +191,38 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <Card title="Total Solved" value={`${totalSolved} / ${totalQuestions}`} icon="📊" />
+        <Card title="This Week" value={`${stats.weekCount} problems solved`} icon="🗓️" />
         <Card title="Current Streak" value={`${stats.streak} days in a row`} icon="🔥" />
-        <Card title="This Week" value={`${stats.weekSolved} problems solved`} icon="🗓️" />
+
+        {stats.nextContest ? (
+          <div
+            onClick={() => navigate("/contest")}
+            className="bg-[#1a1b2e] hover:bg-[#23253b] transition border border-[#2b2b3e] rounded-xl p-5 shadow-sm flex flex-col cursor-pointer w-full"
+          >
+            <div className="text-3xl mb-2">🎯</div>
+            <p className="text-sm text-[#a0aec0] mb-1">Next Contest</p>
+
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-white text-base font-bold truncate">{stats.nextContest.name}</h2>
+              <p className="text-xs text-gray-400">
+                {dayjs(stats.nextContest.startTime).format("ddd, MMM D, hh:mm A")}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-white">{stats.nextContest.platform}</p>
+              <p className="text-xs text-gray-400 font-medium">
+                {getDuration(stats.nextContest.startTime, stats.nextContest.endTime)}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-[#1a1b2e] border border-[#2b2b3e] rounded-xl p-5 shadow-sm w-full">
+            <div className="text-2xl mb-2">🎯</div>
+            <p className="text-sm text-[#a0aec0] mb-1">Next Contest</p>
+            <p className="text-lg font-semibold text-white">No contests</p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -227,9 +267,9 @@ export default function Dashboard() {
 function Card({ title, value, icon }) {
   return (
     <div className="bg-[#1a1b2e] border border-[#2b2b3e] rounded-xl p-5 shadow-sm flex flex-col gap-2">
-      <div className="text-2xl">{icon}</div>
-      <p className="text-sm text-[#a0aec0]">{title}</p>
-      <p className="text-xl font-semibold text-white leading-snug">{value}</p>
+      <div className="text-2xl mb-2">{icon}</div>
+      <p className="text-sm text-[#a0aec0] mb-1">{title}</p>
+      <p className="text-xl font-semibold text-white leading-snug mb-1">{value}</p>
     </div>
   );
 }

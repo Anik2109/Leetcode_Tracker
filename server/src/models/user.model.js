@@ -25,14 +25,14 @@ const userSchema = new Schema(
         solvedProblems: [
             {
                 question: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Question',
-                required: true
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'Question',
+                    required: true
                 },
                 solvedOn: {
-                type: Date,
-                default: () => new Date(),
-                required: true
+                    type: Date,
+                    default: () => new Date(),
+                    required: true
                 }
             }
         ],
@@ -49,7 +49,12 @@ const userSchema = new Schema(
             type: Date,
             default: null,
         },
-
+        contestPrefrences:[
+            {
+                type: String,
+                default:"null"
+            }
+        ]
     },
     {
         timestamps: true

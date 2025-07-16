@@ -57,7 +57,7 @@ function App() {
   );
 }
   return !loading ? (
-    <div className="flex flex-wrap content-between bg-[#1e1e2f]">
+    <div className="flex flex-wrap content-between bg-blue-500">
       <div className="w-full block">
         {!hideHeader &&(<Header />)}
         <main className="bg-[#1e1e2f]">
