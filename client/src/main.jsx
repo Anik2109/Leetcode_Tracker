@@ -6,7 +6,7 @@ import { store } from "./app/store";
 import { Provider } from "react-redux";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import {Protected,Secured} from './components/AuthLayout';
-import PageFallback from './Skeleton/PageFallback';
+
 
 
 const Login = React.lazy(() => import('./pages/Login'));
