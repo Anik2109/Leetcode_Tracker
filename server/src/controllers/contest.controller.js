@@ -97,7 +97,7 @@ const getActiveContests = asyncHandler(async (req, res) => {
     const today = dayjs.utc();
     const contests = await Contest.find({
         active: true,
-    })
+    }).sort({ date: 1, startTime: 1 });
 
     const awaitedContests = [];
     const upcomingContests = [];
@@ -257,14 +257,16 @@ const scrapeCodeChef = async () => {
     const upcomingContests = data?.future_contests || [];
     // console.log("Upcoming:-",upcomingContests);
 
-    const formattedContests = upcomingContests.map((contest) => ({
-      name: contest.contest_name,
-      startTime: new Date(contest.contest_start_date_iso),
-      endTime: new Date(contest.contest_end_date_iso),
-      duration: parseInt(contest.contest_duration), 
-      link: "https://www.codechef.com/contests",
-      platform: "CodeChef",
-      type:"CC"
+    const formattedContests = upcomingContests
+    .filter((contest) => !contest.contest_name.toLowerCase().includes("dev"))
+    .map((contest) => ({
+        name: contest.contest_name,
+        startTime: new Date(contest.contest_start_date_iso),
+        endTime: new Date(contest.contest_end_date_iso),
+        duration: parseInt(contest.contest_duration),
+        link: "https://www.codechef.com/contests",
+        platform: "CodeChef",
+        type: "CC",
     }));
     // console.log("Formatted: ",formattedContests);
     

@@ -196,7 +196,13 @@ export default function Dashboard() {
 
         {stats.nextContest ? (
           <div
-            onClick={() => navigate("/contest")}
+            onClick={() => {
+                if (stats.nextContest.link) {
+                window.open(stats.nextContest.link, "_blank");
+              } else {
+                navigate("/contest");
+              }
+            }}
             className="bg-[#1a1b2e] hover:bg-[#23253b] transition border border-[#2b2b3e] rounded-xl p-5 shadow-sm flex flex-col cursor-pointer w-full"
           >
             <div className="text-3xl mb-2">🎯</div>
@@ -217,11 +223,14 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          <div className="bg-[#1a1b2e] border border-[#2b2b3e] rounded-xl p-5 shadow-sm w-full">
-            <div className="text-2xl mb-2">🎯</div>
-            <p className="text-sm text-[#a0aec0] mb-1">Next Contest</p>
-            <p className="text-lg font-semibold text-white">No contests</p>
-          </div>
+        <div 
+          className="bg-[#1a1b2e] hover:bg-[#23253b] transition border border-[#2b2b3e] rounded-xl p-5 shadow-sm flex flex-col cursor-pointer w-full"
+          onClick={() => navigate("/contest")}
+        >
+          <div className="text-3xl mb-2">🎯</div>
+          <p className="text-sm text-[#a0aec0] mb-1">Next Contest</p>
+          <p className="text-xl font-semibold text-white leading-snug mb-1">No Contests</p>
+        </div>
         )}
       </div>
 
@@ -276,9 +285,9 @@ function Card({ title, value, icon }) {
 
 function DifficultyCard({ label, solved, total, color, percent }) {
   const colorMap = {
-    green: "bg-green-400",
-    orange: "bg-orange-400",
-    red: "bg-red-400",
+    green: "from-green-400 to-green-600",
+    orange: "from-orange-400 to-orange-600",
+    red: "from-red-400 to-red-600",
   };
   const textColor = {
     green: "text-green-300",
@@ -304,12 +313,12 @@ function DifficultyCard({ label, solved, total, color, percent }) {
   );
 }
 
-function ProgressBar({ value, total, color = "bg-blue-500" }) {
-  const percent = (value / total) * 100;
+function ProgressBar({ value, total, color = "from-blue-400 to-blue-600" }) {
+  const percent = total > 0 ? (value / total) * 100 : 0;
   return (
     <div className="w-full h-2.5 bg-[#2b2b3e] rounded-full">
       <div
-        className={`${color} h-full rounded-full transition-all duration-300`}
+        className={`h-full rounded-full transition-all duration-300 bg-gradient-to-r ${color}`}
         style={{ width: `${percent}%` }}
       />
     </div>

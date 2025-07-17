@@ -96,13 +96,25 @@ const getStudyPlan_public = asyncHandler(async (req, res) => {
 
       const questions = await Question.find({ Qid: { $in: questionIds } });
 
-      const enrichedQuestions = questions.map((q) => ({
-        title: q.title,
-        slug: q.slug,
-        Qid: q.Qid ?? q._id,
-        difficulty: q.difficulty,
-        solved: solvedSet.has(q._id.toString())
-      }));
+      const questionsMap = new Map(
+        questions.map((q) => [q.Qid?.toString() || q._id.toString(), q])
+      );
+
+      const enrichedQuestions = questionIds
+        .map((id) => {
+          const q = questionsMap.get(id);
+          if (!q) return null; 
+          return {
+            title: q.title,
+            slug: q.slug,
+            Qid: q.Qid ?? q._id,
+            difficulty: q.difficulty,
+            topics: q.topics,
+            companyTags: q.companyTags,
+            solved: solvedSet.has(q._id.toString())
+          };
+        })
+        .filter(Boolean);
 
       return {
         title: topic.title,
