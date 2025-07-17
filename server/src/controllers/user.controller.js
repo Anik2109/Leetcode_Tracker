@@ -82,7 +82,7 @@ const Login = asyncHandler(async (req, res) => {
     const isPasswordValid = await user.isPasswordCorrect(password);
 
     if (!isPasswordValid) {
-    console.error("Invalid password for user:", user.username);
+    // console.error("Invalid password for user:", user.username);
     throw new ApiError(401, "Invalid password");
     }
 

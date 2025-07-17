@@ -1,16 +1,14 @@
-import { useState,useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import API from "../api/axios";
-import { toast } from "react-hot-toast";
-import { Toaster } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 import ConfirmModal from "../components/Confirmation/confirm.jsx";
-import dayjs from "dayjs";
 
 export default function Admin() {
   const [fetchedPlan, setFetchedPlan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     user: "",
-    action: "view",       // add | remove | delete | replace | rename | view
+    action: "view",
     title: "",
     newName: "",
     questions: "",
@@ -20,34 +18,35 @@ export default function Admin() {
   const [confirmAction, setConfirmAction] = useState(() => () => {});
   const [confirmMessage, setConfirmMessage] = useState("");
 
+  const submitLock = useRef(false);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  
+  const parsedQuestions = useMemo(() => {
+    return (form.questions || "")
+      .split("\n")
+      .map((q) => q.trim())
+      .filter(Boolean);
+  }, [form.questions]);
 
-  // Parse the questions textarea into an array
-  const parsedQuestions = (form.questions || "")
-    .split("\n")
-    .map((q) => q.trim())
-    .filter(Boolean);
+  const jsonOutput = useMemo(() => {
+    return {
+      action: form.action,
+      ...(form.action === "rename" && form.newName && { newName: form.newName }),
+      topics: [
+        {
+          title: form.title,
+          ...(form.action !== "rename" && form.action !== "view" && {
+            questions: parsedQuestions,
+          }),
+        },
+      ],
+    };
+  }, [form, parsedQuestions]);
 
-  // Always include topics in JSON; for rename include newName
-  const jsonOutput = {
-    action: form.action,
-    ...(form.action === "rename" && form.newName && { newName: form.newName }),
-    topics: [
-      {
-        title: form.title,
-        ...(form.action !== "rename" && form.action !== "view" && {
-          questions: parsedQuestions,
-        }),
-      },
-    ],
-  };
-
-  // Mapping for user to ID
   const userIdMap = {
     cutiee: "6874b10307fc6f3183997881",
     babygirl: "6873fa0943fbf04d5631aec8",
@@ -60,8 +59,15 @@ export default function Admin() {
   };
 
   const handleSubmitConfirmed = async () => {
+    if (submitLock.current) return;
+    submitLock.current = true;
+
     const userId = userIdMap[form.user.toLowerCase()];
-    if (!userId) return toast.error("Please select a valid user.");
+    if (!userId) {
+      toast.error("Please select a valid user.");
+      submitLock.current = false;
+      return;
+    }
 
     setLoading(true);
     try {
@@ -69,18 +75,16 @@ export default function Admin() {
         const { data } = await API.get(`/studyplan/${userId}`);
         toast.success("Fetched successfully!");
         setFetchedPlan(data.statusCode.topics || []);
-        
-        // document.getElementById("outputPanel")?.scrollIntoView({ behavior: "smooth" });
       } else {
         await API.patch(`/studyplan/${userId}`, jsonOutput);
         toast.success("Action completed successfully!");
         setFetchedPlan(null);
       }
     } catch (err) {
-      console.error("Error:", err);
       toast.error("Failed: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
+      submitLock.current = false;
     }
   };
 
@@ -100,7 +104,6 @@ export default function Admin() {
       toast.success("Study plan deleted successfully!");
       setFetchedPlan(null);
     } catch (err) {
-      console.error("Delete error:", err);
       toast.error("Failed to delete: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
@@ -125,28 +128,27 @@ export default function Admin() {
     );
   };
 
-  const archiveSelectedContests = async () => {
+  const confirmArchiveSelectedContests = async () => {
+    try {
+      await API.post("/contest/archive", { contestIds: selectedIds });
+      toast.success("Archived successfully!");
+      setSelectedIds([]);
+      fetchAwaitedContests();
+    } catch (err) {
+      toast.error("Failed to archive contests.");
+    }
+  };
+
+  const archiveSelectedContests = () => {
     if (selectedIds.length === 0) return toast.error("No contests selected.");
     setConfirmMessage(`Are you sure you want to archive ${selectedIds.length} contest(s)?`);
     setConfirmAction(() => confirmArchiveSelectedContests);
     setShowConfirm(true);
-    const confirmArchiveSelectedContests = async () => {
-      try {
-        await API.post("/contest/archive", { contestIds: selectedIds });
-        toast.success("Archived successfully!");
-        setSelectedIds([]);
-        fetchAwaitedContests(); 
-      } catch (err) {
-        toast.error("Failed to archive contests.");
-      }
-    };
   };
 
   useEffect(() => {
     fetchAwaitedContests();
   }, []);
-
-
   return (
     <div className="flex flex-col lg:flex-row gap-8 p-6 bg-[#0f0f1c] min-h-screen text-white">
       <Toaster position="top-right" />
@@ -285,11 +287,11 @@ export default function Admin() {
             )}
          </div>
          <ConfirmModal
-           isOpen={showConfirm}
-           onClose={() => setShowConfirm(false)}
-           onConfirm={confirmAction}
-           message={confirmMessage}
-         />
+          isOpen={showConfirm}
+          onClose={() => setShowConfirm(false)}
+          onConfirm={confirmAction}
+          message={confirmMessage}
+        />
          <div className="w-full lg:w-1/2 mt-10">
       <h2 className="text-2xl font-bold mb-4">📦 Archive Completed Contests</h2>
       <div className="bg-[#1a1b2e] p-4 rounded-lg border border-white/10 space-y-3 max-h-[400px] overflow-y-auto">

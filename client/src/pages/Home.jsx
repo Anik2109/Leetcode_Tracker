@@ -1,44 +1,49 @@
 import { useEffect, useState } from "react";
 import authService from "../services/Auth";
+import Loader from "../components/Loader";
 import Dashboard from "../components/Dashboard/Dashboard";
 import StudyPlans from "../components/StudyPlans/StudyPlans";
 
 export default function Home() {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     authService.getCurrentUser()
-      .then((user) => {
-        setUser(user);
+      .then((res) => {
+        if (isMounted) setUser(res);
       })
       .catch((err) => {
-        console.error("❌ Auth error:", err.response?.data || err.message);
+        console.error("❌ Auth error:", err?.response?.data?.message || err.message || err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
       });
+
+    return () => { isMounted = false };
   }, []);
 
-  if (!user){
-  return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-[#0f0f1c] text-white space-y-4">
-      {/* Bouncing dots */}
-      <div className="flex space-x-3">
-        <div className="h-5 w-5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-        <div className="h-5 w-5 bg-green-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-        <div className="h-5 w-5 bg-purple-500 rounded-full animate-bounce"></div>
-      </div>
-
-      {/* Funny DSA comment */}
-      <p className="text-lg text-white">
-        "Generating testcases... Verifying against hidden inputs... 🙃"
-      </p>
-    </div>
+  if (loading) return (
+    <>
+      <Loader />
+    </>
   );
-}
+
+  if (!user) {
+    return (
+      <div className="text-white text-center p-6">
+        Failed to load user. Please{" "}
+        <a href="/login" className="text-blue-400 underline">log in</a> again.
+      </div>
+    );
+  }
 
   return (
     <>
       <Dashboard />
       <StudyPlans />
-
     </>
   );
 }

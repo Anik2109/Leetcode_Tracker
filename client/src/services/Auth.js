@@ -1,55 +1,75 @@
 import API from "../api/axios";
 
-class AuthService{
-    async login(username, password) {
-        try {
-            const res = await API.post("/users/login", { username, password });
+class AuthService {
+  async login(username, password) {
+    try {
+      const res = await API.post("/users/login", { username, password });
+      const accessToken = res.data.statusCode.accessToken;
+      const user = res.data.statusCode.user;
 
-            const accessToken = res.data.statusCode.accessToken;
-            const user = res.data.statusCode.user;
+      this.setAccessToken(accessToken);
+      this.setRole(user.role);
+      this.setAuthHeader(accessToken);
 
-            
-
-
-            localStorage.setItem("accessToken", accessToken);
-            localStorage.setItem("role", user.role);
-            API.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
-            return user;
-
-        } catch (error) {
-            console.error("Login failed:", error);
-            throw error;
-        }
+      return user;
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw new Error(error?.response?.data?.message || "Login failed");
     }
+  }
 
-    async getCurrentUser() {
-        try {
-            const res = await API.get("/users/me");
-            return res.data.statusCode.user;
-        } catch (error) {
-            throw error;
-        }
+  async getCurrentUser() {
+    try {
+      const res = await API.get("/users/me");
+      return res.data.statusCode.user;
+    } catch (error) {
+      throw new Error(error?.response?.data?.message || "Failed to fetch user");
     }
+  }
 
-    async logout(){
-        try {
-            const res = await API.post("/users/logout");
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("role");
-            delete API.defaults.headers.common["Authorization"];
-        } catch (error) {
-
-            throw error;
-        }
+  async logout() {
+    try {
+      await API.post("/users/logout");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      this.clearAuthData();
     }
+  }
 
-    isAdmin() {
-        return localStorage.getItem("role") === "admin";
-    }
+  setAuthHeader(token) {
+    API.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  }
 
-    getRole() {
-        return localStorage.getItem("role");
-    }
+  setAccessToken(token) {
+    localStorage.setItem("accessToken", token);
+  }
+
+  getAccessToken() {
+    return localStorage.getItem("accessToken");
+  }
+
+  setRole(role) {
+    localStorage.setItem("role", role);
+  }
+
+  getRole() {
+    return localStorage.getItem("role");
+  }
+
+  isAdmin() {
+    return this.getRole() === "admin";
+  }
+
+  isLoggedIn() {
+    return !!this.getAccessToken();
+  }
+
+  clearAuthData() {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("role");
+    delete API.defaults.headers.common["Authorization"];
+  }
 }
 
 const authService = new AuthService();

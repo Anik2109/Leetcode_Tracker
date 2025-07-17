@@ -46,7 +46,7 @@ const Plan = ({ title, questions }) => {
 
       {/* Collapsible Question List */}
       <div
-        className={`px-6 transition-all duration-500 ease-in-out ${
+        className={`px-6 transition-all duration-[400ms] ease-in-out ${
           open ? 'opacity-100 max-h-[1000px] mt-4' : 'opacity-0 max-h-0 overflow-hidden'
         }`}
       >

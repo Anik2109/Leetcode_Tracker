@@ -1,18 +1,20 @@
 import './index.css'
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import Login from './pages/Login';
 import { store } from "./app/store";
 import { Provider } from "react-redux";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import {Protected} from './components/AuthLayout';
-import {Secured} from './components/AuthLayout';
-import Home from './pages/Home';
-import Admin from './pages/Admin';
-import Contest from './pages/Contest';
-import Topic from './pages/Topic';
-import Company from './pages/Company';
+import {Protected,Secured} from './components/AuthLayout';
+import PageFallback from './Skeleton/PageFallback';
+
+
+const Login = React.lazy(() => import('./pages/Login'));
+const Home = React.lazy(() => import('./pages/Home'));
+const Admin = React.lazy(() => import('./pages/Admin'));
+const Contest = React.lazy(() => import('./pages/Contest'));
+const Topic = React.lazy(() => import('./pages/Topic'));
+const Company = React.lazy(() => import('./pages/Company'));
 
 
 const router = createBrowserRouter([
