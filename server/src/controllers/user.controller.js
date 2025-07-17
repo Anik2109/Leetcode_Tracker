@@ -157,6 +157,32 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     );
 });
 
+const changePassword = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { oldPassword, newPassword } = req.body;
+
+  if (!oldPassword || !newPassword) {
+    throw new ApiError(400, "Both old and new passwords are required");
+  }
+
+  const user = await User.findById(userId).select("+password");
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const isPasswordValid = await user.isPasswordCorrect(oldPassword);
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Old password is incorrect");
+  }
+
+  user.password = newPassword;
+  await user.save();
+
+  return res.status(200).json(
+    new ApiResponse(200, "Password changed successfully",user)
+  );
+});
+
 const syncSolvedProblems = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   if (!isValidObjectId(userId)) {
@@ -607,5 +633,5 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
   );
 });
 
-export{Signup, Login, Logout, getCurrentUser, generateAccessAndRefreshTokens,getStats,syncSolvedProblems,syncDaily,cronSyncAllUsers,AddContestPref};
+export{Signup, Login, Logout, getCurrentUser, generateAccessAndRefreshTokens,getStats,syncSolvedProblems,syncDaily,cronSyncAllUsers,AddContestPref,changePassword};
 

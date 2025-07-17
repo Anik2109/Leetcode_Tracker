@@ -17,6 +17,22 @@ class AuthService {
       throw new Error(error?.response?.data?.message || "Login failed");
     }
   }
+  async signup(fullName,username,password){
+    try {
+      const res=await API.post("users/register",{username,password,fullName});
+      const accessToken = res.data.statusCode.accessToken;
+      const user = res.data.statusCode.user;
+
+      return await this.login(username, password);
+
+      return user;
+
+    } catch (error) {
+      console.error("Signup failed:", error);
+      throw new Error(error?.response?.data?.message || "Signup failed");
+      
+    }
+  }
 
   async getCurrentUser() {
     try {
