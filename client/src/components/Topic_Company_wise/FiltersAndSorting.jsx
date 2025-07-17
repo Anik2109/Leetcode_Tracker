@@ -31,7 +31,7 @@ export default function FiltersAndSorting({
     'bg-transparent text-gray-300 border- hover:bg-gray-800 hover:border-gray-500';
 
   return (
-    <div className="bg-[#0f0f1c] border-white border-[0.5] rounded-xl p-4 flex flex-wrap md:flex-nowrap gap-6 items-center mt-4 shadow-inner ">
+    <div className="bg-[#0f0f1c] rounded-xl p-4 flex flex-wrap md:flex-nowrap gap-6 items-center mt-4 shadow-inner ">
       
       {/* Filters Label */}
       <div className="min-w-fit mt-3.5">
