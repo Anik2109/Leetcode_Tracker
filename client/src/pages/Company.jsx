@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState,useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -14,6 +14,7 @@ export default function Company() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [allQuestions, setAllQuestions] = useState([]);
 
   const selectedCompany = searchParams.get('company') || 'Amazon';
   const statusFilter = searchParams.get('status') || null;
@@ -139,9 +140,7 @@ const companies = [
     const controller = new AbortController();
     
     const company = selectedCompany;
-    const status = statusFilter || 'null';
-    const difficulty = difficultyFilter || 'null';
-    const cacheKey = `company_${company}_${status}_${difficulty}`;
+    const cacheKey = `company_${company}`;
     const cacheTimeKey = `${cacheKey}_time`;
 
     const cached = sessionStorage.getItem(cacheKey);
@@ -152,6 +151,7 @@ const companies = [
       try {
         const parsed = JSON.parse(cached);
         setResponse(parsed);
+        setAllQuestions(parsed.questions);
         setLoading(false);
         return;
       } catch (err) {
@@ -164,9 +164,12 @@ const companies = [
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const endpoint = `/companies/${company}/${status}/${difficulty}`;
+        const endpoint = `/companies/${company}`;
         const res = await API.get(endpoint, { signal: controller.signal });
+
         setResponse(res.data.statusCode);
+        setAllQuestions(res.data.statusCode.questions);
+
         sessionStorage.setItem(cacheKey, JSON.stringify(res.data.statusCode));
         sessionStorage.setItem(cacheTimeKey, dayjs().toISOString());
       } catch (err) {
@@ -179,7 +182,31 @@ const companies = [
     };
     fetchStats();
     return () => controller.abort();
-  }, [selectedCompany, statusFilter, difficultyFilter]);
+  }, [selectedCompany]);
+
+  const filteredQuestions = useMemo(() => {
+    
+    if (!allQuestions || !Array.isArray(allQuestions)) return [];
+    // console.log("All questions:", allQuestions.length);
+      // console.log("Filtering questions:", { statusFilter, difficultyFilter });
+
+      let filtered = [...allQuestions];
+      // console.log(filtered.length, "questions before filtering");
+    
+      if (statusFilter) {
+        filtered = filtered.filter((q) =>
+          statusFilter === "solved" ? q.solved === true : q.solved === false
+        );
+      }
+      // console.log(filtered.length, "questions after status filter");
+      
+      if (difficultyFilter) {
+        filtered = filtered.filter((q) => q.difficulty === difficultyFilter);
+      }
+      // console.log(filtered.length, "questions after difficulty filter");
+  
+      return filtered;
+    }, [allQuestions, statusFilter, difficultyFilter]);
 
 
   return (
@@ -211,18 +238,22 @@ const companies = [
           />
 
           <div className="mt-6 h-[70vh] overflow-y-auto flex flex-col gap-4">
-            {response.questions.map((q) => (
-              <QuestionCard
-                key={q.Qid}
-                Qid={q.Qid}
-                title={q.title}
-                slug={q.slug}
-                difficulty={q.difficulty}
-                solved={q.solved}
-                topics={q.topics}
-                companyTags={q.companyTags}
-              />
-            ))}
+            {Array.isArray(filteredQuestions) && filteredQuestions.length > 0 ? (  
+              filteredQuestions.map((q) => (
+                <QuestionCard
+                  key={q.Qid}
+                  Qid={q.Qid}
+                  title={q.title}
+                  slug={q.slug}
+                  difficulty={q.difficulty}
+                  solved={q.solved}
+                  topics={q.topics}
+                  companyTags={q.companyTags}
+                />
+              ))
+            ): (
+              <p className="text-white">No questions found.</p>
+            )}
           </div>
         </div>
       ):(

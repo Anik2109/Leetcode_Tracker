@@ -6,7 +6,7 @@ import { giveTopics,giveCompany } from "../controllers/topic_company.controller.
 const router = Router();
 
 // Verified Routes
-router.route("/topics/:topic/:status/:difficulty").get(verifyJWT, giveTopics);
-router.route("/companies/:company/:status/:difficulty").get(verifyJWT, giveCompany);
+router.route("/topics/:topic").get(verifyJWT, giveTopics);
+router.route("/companies/:company").get(verifyJWT, giveCompany);
 
 export default router;

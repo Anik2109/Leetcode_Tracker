@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState,useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -15,6 +15,7 @@ export default function Topic() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [allQuestions, setAllQuestions] = useState([]);
 
   const selectedTopic = searchParams.get('topic') || 'Array';
   const statusFilter = searchParams.get('status') || null;
@@ -107,9 +108,7 @@ export default function Topic() {
     const controller = new AbortController();
 
     const topic = selectedTopic;
-    const status = statusFilter || 'null';
-    const difficulty = difficultyFilter || 'null';
-    const cacheKey = `topic_${topic}_${status}_${difficulty}`;
+    const cacheKey = `topic_${topic}`;
     const cacheTimeKey = `${cacheKey}_time`;
 
     const cached = sessionStorage.getItem(cacheKey);
@@ -120,6 +119,7 @@ export default function Topic() {
       try {
         const parsed = JSON.parse(cached);
         setResponse(parsed);
+        setAllQuestions(parsed.questions);
         setLoading(false);
         return;
       } catch (err) {
@@ -132,9 +132,12 @@ export default function Topic() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const endpoint = `/topics/${topic}/${status}/${difficulty}`;
+        const endpoint = `/topics/${topic}`;
         const res = await API.get(endpoint, { signal: controller.signal });
         setResponse(res.data.statusCode);
+        setAllQuestions(res.data.statusCode.questions);
+        // console.log("Response:", res.data.statusCode.total);
+        
         sessionStorage.setItem(cacheKey, JSON.stringify(res.data.statusCode));
         sessionStorage.setItem(cacheTimeKey, dayjs().toISOString());
       } catch (err) {
@@ -149,7 +152,24 @@ export default function Topic() {
     fetchData();
 
     return () => controller.abort();
-  }, [selectedTopic, statusFilter, difficultyFilter]);
+  }, [selectedTopic]);
+
+  const filteredQuestions = useMemo(() => {
+    if (!allQuestions || !Array.isArray(allQuestions)) return [];
+    let filtered = [...allQuestions];
+  
+    if (statusFilter) {
+      filtered = filtered.filter((q) =>
+        statusFilter === "solved" ? q.solved === true : q.solved === false
+      );
+    }
+    
+    if (difficultyFilter) {
+      filtered = filtered.filter((q) => q.difficulty === difficultyFilter);
+    }
+
+    return filtered;
+  }, [allQuestions, statusFilter, difficultyFilter]);
 
 
   return (
@@ -182,18 +202,22 @@ export default function Topic() {
           />
 
           <div className="mt-6 h-[70vh] overflow-y-auto flex flex-col gap-4 hide-scrollbar">
-            {response.questions.map((q) => (
-              <QuestionCard
-                key={q.Qid}
-                Qid={q.Qid}
-                title={q.title}
-                slug={q.slug}
-                difficulty={q.difficulty}
-                solved={q.solved}
-                topics={q.topics}
-                companyTags={q.companyTags}
-              />
-            ))}
+            {Array.isArray(filteredQuestions) && filteredQuestions.length > 0 ? (
+              filteredQuestions.map((q) => (
+                <QuestionCard
+                  key={q.Qid}
+                  Qid={q.Qid}
+                  title={q.title}
+                  slug={q.slug}
+                  difficulty={q.difficulty}
+                  solved={q.solved}
+                  topics={q.topics}
+                  companyTags={q.companyTags}
+                />
+              ))
+            ): (
+              <p className="text-white">No questions found.</p>
+            )}
           </div>
         </div>
       ):(
