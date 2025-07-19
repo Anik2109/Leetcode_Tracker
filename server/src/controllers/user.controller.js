@@ -321,8 +321,8 @@ const getStats = asyncHandler(async (req, res) => {
     }
   }
 
+  const todayStr = today.format("YYYY-MM-DD");
   const yesterday = dayjs().utc().subtract(1, "day").format("YYYY-MM-DD");
-
 
   let updatedLastMissed = user.lastMissedDate;
   let streak = 0;
@@ -331,10 +331,10 @@ const getStats = asyncHandler(async (req, res) => {
     updatedLastMissed= yesterday;
   }
   else {
-    streak = today.diff(dayjs.utc(updatedLastMissed), 'day') 
+    streak = today.diff(dayjs.utc(updatedLastMissed), 'day')     
   }
 
-  if(perDay[today]){
+  if(perDay[todayStr]){
     streak++;
   }
 
