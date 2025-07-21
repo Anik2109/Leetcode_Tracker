@@ -45,25 +45,25 @@ const router = createBrowserRouter([
       {
         path: "/contest",
         element: (
-          <Secured authentication>
+          <Protected authentication>
             <Contest />
-          </Secured>
+          </Protected>
         ),
       },
       {
         path: "/topics",
         element: (
-          <Secured authentication>
+          <Protected authentication>
             <Topic />
-          </Secured>
+          </Protected>
         ),
       },
       {
         path: "/companies",
         element: (
-          <Secured authentication>
+          <Protected authentication>
             <Company />
-          </Secured>
+          </Protected>
         ),
       },
     ],
