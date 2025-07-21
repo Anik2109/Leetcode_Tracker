@@ -10,6 +10,7 @@ import axios from "axios";
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js';
 import utc from 'dayjs/plugin/utc.js';
+import bcrypt from "bcryptjs";
 dayjs.extend(isSameOrAfter);
 dayjs.extend(utc);
 
@@ -290,9 +291,6 @@ const getStats = asyncHandler(async (req, res) => {
   let today = dayjs().utc().startOf("day");
   let weekStart = today.subtract(6, "day");
   let weekCount=0;
-  let easy = 0;
-  let medium = 0;
-  let hard = 0;
   let perDay = {};
 
   // Initialize perDay with all 7 days
@@ -305,13 +303,6 @@ const getStats = asyncHandler(async (req, res) => {
     const q = entry.question;
     const solvedDate = dayjs.utc(entry.solvedOn);
     const dateStr = solvedDate.format("YYYY-MM-DD");
-
-    if (q?.difficulty) {
-      const diff = q.difficulty.toLowerCase();
-      if (diff === "easy") easy++;
-      else if (diff === "medium") medium++;
-      else if (diff === "hard") hard++;
-    }
 
     if (solvedDate.isSameOrAfter(weekStart)) {
       weekCount++;
@@ -351,10 +342,10 @@ const getStats = asyncHandler(async (req, res) => {
 
 
   const stats = {
-    totalSolved: user.solvedProblems.length,
-    easySolved: easy,
-    mediumSolved: medium,
-    hardSolved: hard,
+    totalSolved: user.total,
+    easySolved: user.easy,
+    mediumSolved: user.medium,
+    hardSolved: user.hard,
     streak,
     dailySolved: perDay,
     lastSynced: user.lastSynced ? user.lastSynced.toISOString() : null,
@@ -397,7 +388,16 @@ const syncDaily = asyncHandler(async (req, res) => {
     "https://leetcode.com/graphql",
     {
       query: `
-        query recentAcSubmissions($username: String!, $limit: Int!) {
+        query getUserData($username: String!, $limit: Int!) {
+          matchedUser(username: $username) {
+            submitStatsGlobal {
+              acSubmissionNum {
+                difficulty
+                count
+                submissions
+              }
+            }
+          }
           recentAcSubmissionList(username: $username, limit: $limit) {
             id
             title
@@ -419,6 +419,9 @@ const syncDaily = asyncHandler(async (req, res) => {
       },
     }
   );
+
+  // console.log(response.data.data.matchedUser.submitStatsGlobal.acSubmissionNum);
+  
 
   const submissions = response.data.data.recentAcSubmissionList;
   let newSolvedCount = 0;
@@ -447,21 +450,29 @@ const syncDaily = asyncHandler(async (req, res) => {
       solvedOn
     }));
   }
+    
+    user.total=response.data.data.matchedUser.submitStatsGlobal.acSubmissionNum.find(stat => stat.difficulty === "All").count;
+    user.easy = response.data.data.matchedUser.submitStatsGlobal.acSubmissionNum.find(stat => stat.difficulty === "Easy").count;
+    user.medium = response.data.data.matchedUser.submitStatsGlobal.acSubmissionNum.find(stat => stat.difficulty === "Medium").count;
+    user.hard = response.data.data.matchedUser.submitStatsGlobal.acSubmissionNum.find(stat => stat.difficulty === "Hard").count;
 
     user.lastSynced = new Date();
     await user.save();
 
   return res.status(200).json(
     new ApiResponse(200, "Daily solved problems synced", {
+      totalSolved: response.data.data.matchedUser.submitStatsGlobal.acSubmissionNum.find(stat => stat.difficulty === "All").count,
+      easySolved: response.data.data.matchedUser.submitStatsGlobal.acSubmissionNum.find(stat => stat.difficulty === "Easy").count,
+      mediumSolved: response.data.data.matchedUser.submitStatsGlobal.acSubmissionNum.find(stat => stat.difficulty === "Medium").count,
+      hardSolved: response.data.data.matchedUser.submitStatsGlobal.acSubmissionNum.find(stat => stat.difficulty === "Hard").count,
       newlyAdded: newSolvedCount,
-      totalSolved: user.solvedProblems.length,
       lastSynced: user.lastSynced,
     })
   );
 });
 
 const AddContestPref = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
+  const userId = req.params.userId ;
   if (!isValidObjectId(userId)) {
     throw new ApiError(400, "User ID is not valid");
   }

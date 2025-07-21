@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {Signup,Login,Logout,getCurrentUser,getStats,syncSolvedProblems, syncDaily,cronSyncAllUsers,AddContestPref, changePassword} from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { verifyAdmin } from "../middlewares/admin.middleware.js";
 
 const router = Router();
 
@@ -15,7 +16,7 @@ router.route("/me").get(verifyJWT,getCurrentUser)
 router.route("/sync_cookie").post(verifyJWT,syncSolvedProblems);
 router.route("/sync_daily").post(verifyJWT,syncDaily);
 router.route("/stats").get(verifyJWT,getStats);
-router.route("/contest_pref").post(verifyJWT,AddContestPref) 
+router.route("/:userId/contest_pref").post(AddContestPref) 
 router.route("/changePassword").post(verifyJWT,changePassword)
 
 
