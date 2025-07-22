@@ -40,6 +40,7 @@ import questionRouter from "./routes/question.routes.js";
 import studyPlanRouter from "./routes/studyplan.routes.js";
 import contestRouter from "./routes/contest.routes.js";
 import topic_companyRouter from "./routes/topic_company.routes.js";
+import dailyRouter from "./routes/daily.routes.js";
 
 //routes decalaration
 app.use("/api/users", userRouter)
@@ -47,6 +48,7 @@ app.use("/api/ques", questionRouter)
 app.use("/api/studyplan", studyPlanRouter)
 app.use("/api/contest", contestRouter)
 app.use("/api", topic_companyRouter)
+app.use("/api", dailyRouter)
 
 
 export { app }

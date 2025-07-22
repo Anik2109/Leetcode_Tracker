@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import {Contest} from "../models/contest.models.js";
+import { Daily } from "../models/daily.models.js";
 import { Question } from "../models/question.models.js";
 import { isValidObjectId } from "mongoose";
 import {scrapeAllContests} from "./contest.controller.js";
@@ -339,6 +340,10 @@ const getStats = asyncHandler(async (req, res) => {
   active: true                   
 }).sort({ startTime: 1 });    
 
+const dailyQuestion = await Daily.findOne({
+  date: today.toDate()
+}).select("slug");
+
 
 
   const stats = {
@@ -351,6 +356,7 @@ const getStats = asyncHandler(async (req, res) => {
     lastSynced: user.lastSynced ? user.lastSynced.toISOString() : null,
     nextContest: nextContest,
     weekCount: weekCount,
+    dailyQuestion: dailyQuestion 
   };
 
   return res.status(200).json(
@@ -502,6 +508,60 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Unauthorized CRON access");
   }
 
+  // ------------------------ Sync Daily ------------------------
+
+  const dailyQues = await axios.post(
+    "https://leetcode.com/graphql",
+    {
+      query: `
+       query questionOfToday {
+          activeDailyCodingChallengeQuestion {
+            date
+            link
+            question {
+              titleSlug
+            }
+          }
+        }
+      `,
+      variables: { },
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0",
+      },
+    }
+  );
+
+  
+  const today = new Date().toISOString().split("T")[0]; // yyyy-mm-dd
+  const dateObj = new Date(today);
+  
+  const existingDaily = await Daily.findOne({
+    date: dateObj
+  });
+
+  let dailyQuestion;
+
+  if (!existingDaily) {
+
+    dailyQuestion = await Daily.create({
+      slug: dailyQues.data.data.activeDailyCodingChallengeQuestion.link,
+      date: dateObj,
+    });
+  }
+  else{
+    dailyQuestion = existingDaily
+  }
+
+
+  console.log("✅ Daily Challenge synced:");
+
+
+
+  // ------------------------ Sync Users ------------------------
+
   const users = await User.find({}, "_id username solvedProblems");
   let successCount = 0;
   const failed = [];
@@ -577,7 +637,9 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
 
   console.log(`✅ User Sync finished: ${successCount}/${users.length} users synced.`);
 
-  // ----- Sync Contests -----
+  // ------------------------ Sync Contests ------------------------
+  let inserted = [];
+  let skipped = [];
   try {
     const contests = await scrapeAllContests(); // Should return unified contests array
 
@@ -585,8 +647,6 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
       throw new ApiError("scrapeAllContests did not return an array");
     }
 
-    const inserted = [];
-    const skipped = [];
 
     for (const contest of contests) {
       const alreadyExists = await Contest.findOne({
@@ -611,6 +671,10 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
 
   return res.status(200).json(
     new ApiResponse(200, "CRON Sync Completed", {
+      daily: {
+        slug: dailyQuestion.slug,
+        date: dailyQuestion.date.toISOString(),
+      },
       users: {
         total: users.length,
         synced: successCount,

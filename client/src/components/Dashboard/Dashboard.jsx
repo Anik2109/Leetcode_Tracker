@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import API from "../../api/axios";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { Card, ProgressBar, CircularProgress, DifficultyCard } from "./Features";
+import {ProgressBar, CircularProgress, DifficultyCard } from "./Features";
 import DashSkeleton from "../../skeleton/dashSkeleton";
 import { FaSpinner } from "react-icons/fa";
 
@@ -21,6 +21,8 @@ export default function Dashboard() {
       const res = await API.get("/users/stats");
       const data = res.data.statusCode.stats;
       setStats(data);
+      console.log("Fetched stats:", data);
+      
       sessionStorage.setItem("dashboardStats", JSON.stringify(data));
       sessionStorage.setItem("dashboardStatsTime", new Date().toISOString());
     } catch (err) {
@@ -169,44 +171,72 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <Card title="This Week" value={`${stats.weekCount} problems solved`} icon="🗓️" />
-        <Card title="Current Streak" value={`${stats.streak} days in a row`} icon="🔥" />
+        {/* <Card title="This Week" value={`${stats.weekCount} problems solved`} icon="🗓️" /> */}
+        <div className="bg-[#1a1b2e] border border-[#2b2b3e] rounded-xl p-5 shadow-sm flex flex-col gap-2">
+          <div className="text-2xl mb-2">🗓️</div>
+          <p className="text-sm text-[#a0aec0] mb-1">This Week</p>
+          <p className="text-xl font-semibold text-white leading-snug mb-1">{`${stats.weekCount} problems solved`}</p>
+        </div>
+
+        {/* <Card title="Current Streak" value={`${stats.streak} days in a row`} icon="🔥" /> */}
+        <div
+          onClick={() => {
+            if (stats.dailyQuestion.slug) {
+              window.open(`https://leetcode.com${stats.dailyQuestion.slug}`, "_blank");
+            }
+          }}
+          className="bg-[#1a1b2e] hover:bg-[#23253b] transition border border-[#2b2b3e] rounded-xl p-5 shadow-sm cursor-pointer w-full">
+          <div className="text-2xl mb-2">🔥</div>
+          <p className="text-sm text-[#a0aec0] mb-1">Current Streak</p>
+          <p className="text-xl font-semibold text-white leading-snug mb-1">{`${stats.streak} days in a row`}</p>
+        </div>
+        
         {stats.nextContest ? (
-          <div
-            onClick={() => {
-              if (stats.nextContest.link) {
-                window.open(stats.nextContest.link, "_blank");
-              } else {
-                navigate("/contest");
-              }
-            }}
-            className="bg-[#1a1b2e] hover:bg-[#23253b] transition border border-[#2b2b3e] rounded-xl p-5 shadow-sm flex flex-col cursor-pointer w-full"
-          >
-            <div className="text-3xl mb-2">🎯</div>
-            <p className="text-sm text-[#a0aec0] mb-1">Next Contest</p>
-            <div className="flex items-center justify-between mb-1">
-              <h2 className="text-white text-base font-bold truncate">{stats.nextContest.name}</h2>
-              <p className="text-xs text-gray-400">
-                {dayjs(stats.nextContest.startTime).format("ddd, MMM D, hh:mm A")}
-              </p>
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-white">{stats.nextContest.platform}</p>
-              <p className="text-xs text-gray-400 font-medium">
-                {getDuration(stats.nextContest.startTime, stats.nextContest.endTime)}
-              </p>
-            </div>
+        <div
+          onClick={() => {
+            if (stats.nextContest.link) {
+              window.open(stats.nextContest.link, "_blank");
+            } else {
+              navigate("/contest");
+            }
+          }}
+          className="bg-[#1a1b2e] hover:bg-[#23253b] transition border border-[#2b2b3e] rounded-xl p-5 shadow-sm cursor-pointer w-full"
+        >
+          <div className="text-3xl mb-2">🎯</div>
+          <p className="text-sm text-[#a0aec0] mb-1">Next Contest</p>
+
+          <div className="flex justify-between items-start gap-3 mb-2">
+            <h2
+              className="text-white text-base font-semibold leading-snug max-w-[60%] truncate"
+              title={stats.nextContest.name}
+            >
+              {stats.nextContest.name}
+            </h2>
+            <p className="text-xs text-gray-400 whitespace-nowrap">
+              {dayjs(stats.nextContest.startTime).format("ddd, MMM D, hh:mm A")}
+            </p>
           </div>
-        ) : (
-          <div
-            className="bg-[#1a1b2e] hover:bg-[#23253b] transition border border-[#2b2b3e] rounded-xl p-5 shadow-sm flex flex-col cursor-pointer w-full"
-            onClick={() => navigate("/contest")}
-          >
-            <div className="text-3xl mb-2">🎯</div>
-            <p className="text-sm text-[#a0aec0] mb-1">Next Contest</p>
-            <p className="text-xl font-semibold text-white leading-snug mb-1">No Contests</p>
+
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-xs text-white font-medium">{stats.nextContest.platform}</p>
+              <p className="text-[11px] text-gray-400">{stats.nextContest.type}</p>
+            </div>
+            <p className="text-xs text-gray-400 font-medium">
+              {getDuration(stats.nextContest.startTime, stats.nextContest.endTime)}
+            </p>
           </div>
-        )}
+        </div>
+      ) : (
+        <div
+          className="bg-[#1a1b2e] hover:bg-[#23253b] transition border border-[#2b2b3e] rounded-xl p-5 shadow-sm cursor-pointer w-full"
+          onClick={() => navigate("/contest")}
+        >
+          <div className="text-3xl mb-2">🎯</div>
+          <p className="text-sm text-[#a0aec0] mb-1">Next Contest</p>
+          <p className="text-base font-semibold text-white leading-snug">No Contests</p>
+        </div>
+      )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

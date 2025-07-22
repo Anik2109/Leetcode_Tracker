@@ -17,22 +17,15 @@ class AuthService {
       throw new Error(error?.response?.data?.message || "Login failed");
     }
   }
-  async signup(fullName,username,password){
-    try {
-      const res=await API.post("users/register",{username,password,fullName});
-      const accessToken = res.data.statusCode.accessToken;
-      const user = res.data.statusCode.user;
-
-      return await this.login(username, password);
-
-      return user;
-
-    } catch (error) {
-      console.error("Signup failed:", error);
-      throw new Error(error?.response?.data?.message || "Signup failed");
-      
-    }
+  async signup(fullName, username, password) {
+  try {
+    await API.post("/users/register", { username, password, fullName });
+    return await this.login(username, password);
+  } catch (error) {
+    console.error("Signup failed:", error);
+    throw new Error(error?.response?.data?.message || "Signup failed");
   }
+}
 
   async getCurrentUser() {
     try {
@@ -50,6 +43,7 @@ class AuthService {
       console.error("Logout failed:", error);
     } finally {
       this.clearAuthData();
+      this.clearCachedData();
     }
   }
 
@@ -86,6 +80,11 @@ class AuthService {
     localStorage.removeItem("role");
     delete API.defaults.headers.common["Authorization"];
   }
+
+  clearCachedData() {
+    sessionStorage.clear();
+  }
+
 }
 
 const authService = new AuthService();
