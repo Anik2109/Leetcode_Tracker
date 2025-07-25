@@ -23,7 +23,6 @@ const ContestPage = () => {
       }
       setContests(data);
       sessionStorage.setItem('contest_cache', JSON.stringify(data));
-      sessionStorage.setItem('contest_cacheTime', new Date().toISOString());
     } catch (err) {
       console.error("Failed to fetch contests:", err);
     }finally {
@@ -34,21 +33,15 @@ const ContestPage = () => {
 
   useEffect(() => {
     const cached = sessionStorage.getItem('contest_cache');
-    const cachedTime = sessionStorage.getItem('contest_cacheTime');
-    const isFresh = cachedTime && dayjs().diff(dayjs(cachedTime), "minute") < 1;
 
     if (cached) {
       try {
         setContests(JSON.parse(cached));
         setLoading(false);
-
-        if (!isFresh) {
-          fetchContests();
-        }
+        fetchContests();
       } catch (err) {
         console.error("Error parsing cached contest data:", err);
         sessionStorage.removeItem('contest_cache');
-        sessionStorage.removeItem('contest_cacheTime');
         fetchContests();
       }
     } else {

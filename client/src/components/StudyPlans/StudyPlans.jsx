@@ -13,7 +13,6 @@ export default function StudyPlans() {
       const data = res.data.statusCode.topics;
       setTopics(data);
       sessionStorage.setItem("studyPlanData", JSON.stringify(data));
-      sessionStorage.setItem("studyPlanTime", new Date().toISOString());
     } catch (error) {
       console.error('Failed to fetch study plans:', error);
     } finally {
@@ -23,25 +22,19 @@ export default function StudyPlans() {
 
   useEffect(() => {
     const cached = sessionStorage.getItem("studyPlanData");
-    const cachedTime = sessionStorage.getItem("studyPlanTime");
-    const isFresh = cachedTime && dayjs().diff(dayjs(cachedTime), "minute") < 1;
 
     if (cached) {
       try {
         setTopics(JSON.parse(cached));
         setLoading(false);
-
-        if (!isFresh) {
-          fetchStudyPlans(); // silent revalidation
-        }
+        fetchStudyPlans();
       } catch (err) {
         console.error("Error parsing cached study plans:", err);
         sessionStorage.removeItem("studyPlanData");
-        sessionStorage.removeItem("studyPlanTime");
-        fetchStudyPlans(); // fallback to fresh
+        fetchStudyPlans(); 
       }
     } else {
-      fetchStudyPlans(); // no cache, fetch fresh
+      fetchStudyPlans(); 
     }
   }, [fetchStudyPlans]);
 
