@@ -314,25 +314,15 @@ const getStats = asyncHandler(async (req, res) => {
   }
 
   const todayStr = today.format("YYYY-MM-DD");
-  const yesterday = dayjs().utc().subtract(1, "day").format("YYYY-MM-DD");
 
-  let updatedLastMissed = user.lastMissedDate;
   let streak = 0;
-
-  if(perDay[yesterday]==0){
-    updatedLastMissed= yesterday;
-  }
-  else {
-    streak = today.diff(dayjs.utc(updatedLastMissed), 'day')     
-  }
+  streak = today.diff(dayjs.utc(user.lastMissedDate), 'day');
 
   if(perDay[todayStr]){
     streak++;
   }
 
   streak = Math.max(streak, 0);
-  user.lastMissed = updatedLastMissed;
-
   await user.save({ validateBeforeSave: false });
 
   const nextContest = await Contest.findOne({
@@ -573,7 +563,6 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
     const limit = 20;
     const solvedMap = new Map(user.solvedProblems.map(entry => [entry.question.toString(), entry.solvedOn]));
     const seenSlugs = new Set();
-
     try {
       const response = await axios.post(
         "https://leetcode.com/graphql",
@@ -601,6 +590,9 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
 
       const submissions = response.data.data.recentAcSubmissionList || [];
       let newSolvedCount = 0;
+      let solvedYesterday = false;
+      const yesterday = dayjs().utc().subtract(1, 'day').startOf('day');
+      const endOfYesterday = yesterday.endOf('day');
 
       for (const sub of submissions) {
         if (seenSlugs.has(sub.titleSlug)) continue;
@@ -611,6 +603,11 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
 
         const qIdStr = dbQuestion._id.toString();
         const solvedDate = new Date(sub.timestamp * 1000);
+        const solvedDateJs = dayjs.utc(solvedDate);
+
+        if (solvedDateJs.isAfter(yesterday) && solvedDateJs.isBefore(endOfYesterday)) {
+          solvedYesterday = true;
+        }
 
         if (!solvedMap.has(qIdStr)) {
           solvedMap.set(qIdStr, solvedDate);
@@ -624,6 +621,10 @@ const cronSyncAllUsers = asyncHandler(async (req, res) => {
           solvedOn
         }));
         successCount++;
+      }
+
+      if (!solvedYesterday) {
+        user.lastMissedDate = yesterday.toDate();
       }
 
       user.lastSynced = new Date();
